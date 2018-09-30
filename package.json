@@ -1,0 +1,18 @@
+{
+    "name": "thizer.phpcompletion",
+    "title": "Thizer PHP Completion",
+    "description": "More useful details to let someone know what your extension is all about.",
+    "homepage": "https://github.com/thizer/phpcompletion",
+    "version": "1.0.0",
+    "author": "Thizer <thizerdev@gmail.com> (https://www.thizer.com)",
+    "license": "MIT",
+    "engines": {
+        "brackets": ">=0.24.0"
+    },
+    "i18n": [ "en", "pt"],
+    "package-i18n": {
+        "pt": {
+            "description": "Para realmente fazer a ligação entre classes do PHP"
+        }
+    }
+}
