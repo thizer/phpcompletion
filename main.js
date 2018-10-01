@@ -42,6 +42,38 @@ define(function (require, exports, module) {
     })
   }
 
+  PhpCompletion.prototype.fileObjects = function(Doc, size) {
+
+    var hints = []
+
+    for (var i=0; i<size;i++) {
+      var line = Doc.getLine(i)
+      
+
+      if (line.indexOf('protected') !== -1) {
+        var isFunc = false
+        if (line.indexOf('function') !== -1) {
+          isFunc = true
+        }
+        
+        line = line.replace(/^(protected|public|private)\s+\$/, '').replace(/\s.+/, '')
+
+        if (isFunc) {
+
+          console.log(line)
+
+          hints.push(line+'()')
+        } else {
+          hints.push(line)
+        }
+        // console.log(line)
+      }
+
+    }
+
+    return hints
+  }
+
   /**
    * Method called by HintProvider
    * 
@@ -63,7 +95,8 @@ define(function (require, exports, module) {
     var cursor = editor.getCursorPos()
     var curCharPos = cursor.ch
     var curLinePos = cursor.line
-    var lineStr = editor._codeMirror.doc.getLine(curLinePos)
+    var lineStr = editor._codeMirror.getLine(curLinePos)
+    var totalLines = editor._codeMirror.doc.size
 
     var whatIsIt = lineStr.substr(0, curCharPos).replace(/.+\s/, '')
 
@@ -72,22 +105,33 @@ define(function (require, exports, module) {
       whatIsIt = '$'+(whatIsIt.replace(/(.+)?\$/gi, ''))
     }
 
-    if (whatIsIt.indexOf('$this->') !== -1) {
-      console.log('A local object')
 
-    } else if (whatIsIt[0] === '$' && whatIsIt[whatIsIt.length -1] === '>') {
+    /**
+     * Depending on the type of element we'll get
+     * hints to complete the code
+     */
+    
+    if (whatIsIt.indexOf('$this') !== -1) {
+      
+      this.hints = this.fileObjects(editor.document, totalLines)
+
+
+    } else if ((whatIsIt[0] === '$') && (whatIsIt.indexOf('>') !== -1)) {
 
       console.log('A class instance object')
 
     } else if (whatIsIt[0] === '$') {
 
       console.log('A local variable')
+
     } else if (lineStr.indexOf('new '+whatIsIt)) {
 
       console.log('New Instance')
+
     } else {
 
       console.log('Can be anything')
+
     }
 
     console.log(whatIsIt)
@@ -117,14 +161,14 @@ define(function (require, exports, module) {
     // cursor = editor.getCursorPos()
     // token  = TokenUtils.getInitialContext(editor._codeMirror, cursor);
 
-    var result = []
+    // var result = []
 
-    for (var i in phpFiles) {
-      result.push(phpFiles[i].name)
-    }
+    // for (var i in phpFiles) {
+    //   result.push(phpFiles[i].name)
+    // }
     
     return {
-      hints: result,
+      hints: this.hints,
       match: false,
       selectInitial: true,
       handleWideResults: false
