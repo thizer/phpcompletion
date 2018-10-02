@@ -8,7 +8,8 @@ define(function (require, exports, module) {
   var AppInit               = brackets.getModule("utils/AppInit"),
       EditorManager         = brackets.getModule("editor/EditorManager"),
       CodeHintManager       = brackets.getModule("editor/CodeHintManager"),
-      ProjectManager        = brackets.getModule("project/ProjectManager")
+      ProjectManager        = brackets.getModule("project/ProjectManager"),
+      phpParser             = require('php-parser/dist/php-parser')
       ;
 
 
@@ -98,13 +99,12 @@ define(function (require, exports, module) {
     var lineStr = editor._codeMirror.getLine(curLinePos)
     var totalLines = editor._codeMirror.doc.size
 
-    var whatIsIt = lineStr.substr(0, curCharPos).replace(/.+\s/, '')
-
+    var whatIsIt = lineStr.substr(0, curCharPos).replace(/.+(\s|\(|\,|\.)/, '')
+    
     // Get Variables
     if (whatIsIt.indexOf('$') !== -1) {
       whatIsIt = '$'+(whatIsIt.replace(/(.+)?\$/gi, ''))
     }
-
 
     /**
      * Depending on the type of element we'll get
@@ -113,8 +113,28 @@ define(function (require, exports, module) {
     
     if (whatIsIt.indexOf('$this') !== -1) {
       
-      this.hints = this.fileObjects(editor.document, totalLines)
+//      console.log(editor.document)
+//      return false
+      
+//      this.hints = this.fileObjects(editor.document, totalLines)
+      
+      // initialize a new parser instance
+      var parser = new phpParser({
+        // some options :
+        parser: {
+          extractDoc: true,
+          php7: true
+        },
+        ast: { withPositions: true }
+      });
 
+      
+      var docParsed = phpParser.parseCode(editor.document.getText())
+      var classBody = docParsed.children[0].children[0].body
+      
+      for (var i=0; i<classBody.length; i++) {
+        this.hints.push(classBody[i].name)
+      }
 
     } else if ((whatIsIt[0] === '$') && (whatIsIt.indexOf('>') !== -1)) {
 
@@ -169,10 +189,22 @@ define(function (require, exports, module) {
     
     return {
       hints: this.hints,
-      match: false,
+      match: null,
       selectInitial: true,
-      handleWideResults: false
+      handleWideResults: true
     }
+  }
+  
+  PhpCompletion.prototype.insertHint = function(hint) {
+    
+    // var cursor = this.editor.getCursorPos();
+    // var lineBeginning = {line:cursor.line,ch:0};
+    // var textBeforeCursor = this.editor.document.getRange(lineBeginning, cursor);
+    // var indexOfTheSymbol = textBeforeCursor.search(this.currentTokenDefinition);
+    // var replaceStart = {line:cursor.line,ch:indexOfTheSymbol};
+    // this.editor.document.replaceRange(hint, replaceStart, cursor);
+    
+    return false
   }
 
   /**
