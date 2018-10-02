@@ -8,6 +8,7 @@ define(function (require, exports, module) {
   var AppInit               = brackets.getModule("utils/AppInit"),
       EditorManager         = brackets.getModule("editor/EditorManager"),
       CodeHintManager       = brackets.getModule("editor/CodeHintManager"),
+      DocumentManager       = brackets.getModule("document/DocumentManager"),
       ProjectManager        = brackets.getModule("project/ProjectManager"),
       ExtensionUtils        = brackets.getModule('utils/ExtensionUtils'),
       phpParser             = require('php-parser/dist/php-parser')
@@ -15,6 +16,11 @@ define(function (require, exports, module) {
 
   ExtensionUtils.loadStyleSheet(module, 'styles/thizer-phpcompletion.css');
 
+  function theFuckingRef(a,b,c) {
+    console.log('eita')
+    console.log([a,b,c])
+  }
+  
   /**
    * The object
    */
@@ -45,36 +51,128 @@ define(function (require, exports, module) {
     })
   }
 
-  PhpCompletion.prototype.fileObjects = function(Doc, size) {
-
+  PhpCompletion.prototype.getDocParsed = function(doc) {
+    var content = doc
+    if (typeof doc === 'object') {
+      content = doc.getText()
+    }
+    
+    // initialize a new parser instance
+    var parser = new phpParser({ parser: { extractDoc: true, php7: true }, ast: { withPositions: true } });
+    return parser.parseCode(content)
+  }
+  
+  PhpCompletion.prototype.extractClassObjs = function(doc, visibility) {
+    var $this = this
     var hints = []
 
-    for (var i=0; i<size;i++) {
-      var line = Doc.getLine(i)
-      
+    var docParsed = $this.getDocParsed(doc)
+    var bodyArray = $this.getBodyArray(docParsed)
+    
+//    console.log(bodyArray)
+    
+    for (var i in bodyArray) {
+      var hint = $('<span>').attr('class', 'thizer')
 
-      if (line.indexOf('protected') !== -1) {
-        var isFunc = false
-        if (line.indexOf('function') !== -1) {
-          isFunc = true
-        }
-        
-        line = line.replace(/^(protected|public|private)\s+\$/, '').replace(/\s.+/, '')
-
-        if (isFunc) {
-
-          console.log(line)
-
-          hints.push(line+'()')
-        } else {
-          hints.push(line)
-        }
-        // console.log(line)
+      switch (bodyArray[i].visibility) {
+        case 'public':
+          hint.append('<i class="fa fa-globe-americas thizer-text-success"></i> ')
+          break;
+        case 'protected':
+          hint.append('<i class="fa fa-map-marker-alt thizer-text-warning"></i> ')
+          break;
+        case 'private':
+          hint.append('<i class="fa fa-lock thizer-text-danger"></i> ')
+          break;
       }
 
-    }
+      var hintname = bodyArray[i].name
+      if (bodyArray[i].kind === 'method') {
+        var args = ''
+        for (var a in bodyArray[i].arguments) {
+          args += ', $'+bodyArray[i].arguments[a].name
+        }
+        hintname += '('+(args.replace(', ', ''))+')'
+        
+      } else if (bodyArray[i].kind === 'classconstant') {
+        hintname += ' = '+bodyArray[i].value.raw
+      }
+      hint.append(hintname)
 
+      // Add to the return
+      hints.push(hint)
+    }
     return hints
+  }
+  
+  PhpCompletion.prototype.getBodyArray = function(docParsed, visibity) {
+    var $this = this
+    var bodyArray = []
+    
+    if (undefined === visibity) {
+      visibity = 'public|protected|private'
+    }
+    
+    if (!docParsed.errors.length) {
+      for (var i in docParsed.children) {
+        var item = docParsed.children[i]
+        
+        switch (item.kind) {
+          case 'class':
+            
+            // Check for visibility
+            for (var b in item.body) {
+              var prop = item.body[b]
+              if (visibity.indexOf(prop.visibility) !== -1) {
+                bodyArray.push(prop)
+              }
+            }
+            break
+            
+          case 'namespace':
+            for (var c in item.children) {
+              if (item.children[c].kind === 'class') {
+                
+                // Check for visibility
+                for (var b in item.children[c].body) {
+                  var prop = item.children[c].body[b]
+                  if (visibity.indexOf(prop.visibility) !== -1) {
+                    bodyArray.push(prop)
+                  }
+                }
+                
+                // Class parent
+                if (item.children[c].extends) {
+                  var parentName = item.children[c].extends.name
+                  
+                  for (var f in $this.phpFiles) {
+                    if ($this.phpFiles[f].name.indexOf(parentName) !== -1) {
+                      
+                      var wait=true
+                      
+                      console.log('passo1')
+                      $this.phpFiles[f].read(function(err, data, encoding, stat) {
+                        console.log('passo2')
+                        if (err) return;
+                        bodyArray = bodyArray.concat($this.getBodyArray($this.getDocParsed(data), 'public|protected'))
+                        wait = false
+                      })
+                      console.log('passo3')
+                      
+//                      while(wait) { }
+                    }
+                  }
+                }
+                
+              }
+            }
+            break
+        }
+      } // End of multiple elements on the file
+    } // End if errors
+    
+    // Return a list of accessible properties from the file
+    return bodyArray
   }
 
   /**
@@ -115,58 +213,10 @@ define(function (require, exports, module) {
     
     if (whatIsIt.indexOf('$this') !== -1) {
       
-//      console.log(editor.document)
-//      return false
+      var classHints = this.extractClassObjs(editor.document)
       
-//      this.hints = this.fileObjects(editor.document, totalLines)
-      
-      // initialize a new parser instance
-      var parser = new phpParser({
-        // some options :
-        parser: {
-          extractDoc: true,
-          php7: true
-        },
-        ast: { withPositions: true }
-      });
-
-      
-      var docParsed = phpParser.parseCode(editor.document.getText())
-      var classBody = docParsed.children[0].children[0].body
-      
-      for (var i=0; i<classBody.length; i++) {
-        
-        var hint = $('<span>').attr('class', 'thizer')
-        
-        switch (classBody[i].visibility) {
-          case 'public':
-            hint.append('<i class="fa fa-globe-americas thizer-text-success"></i> ')
-            break;
-          case 'protected':
-            hint.append('<i class="fa fa-map-marker-alt thizer-text-warning"></i> ')
-            break;
-          case 'private':
-            hint.append('<i class="fa fa-lock thizer-text-danger"></i> ')
-            break;
-        }
-        
-        var hintname = classBody[i].name
-        
-        if (classBody[i].kind === 'method') {
-          
-          var args = ''
-          for (var a in classBody[i].arguments) {
-            args += ', $'+classBody[i].arguments[a].name
-          }
-          
-          hintname += '('+(args.replace(', ', ''))+')'
-        }
-        
-        hint.append(hintname)
-        
-        console.log(classBody[i])
-        
-        this.hints.push(hint)
+      for (var i in classHints) {
+        this.hints.push(classHints[i])
       }
 
     } else if ((whatIsIt[0] === '$') && (whatIsIt.indexOf('>') !== -1)) {
@@ -186,16 +236,6 @@ define(function (require, exports, module) {
       console.log('Can be anything')
 
     }
-
-    console.log(whatIsIt)
-
-    // lineStr.forEach(function(item,i) {
-    //   // console.log([curLinePos, item.lines[curLinePos]])
-
-    //   for (var li in item.lines) {
-    //     console.log(item.lines[li].text)
-    //   }
-    // })
 
     // var token = TokenUtils.getInitialContext(editor._codeMirror, editor.getCursorPos());
     
@@ -229,7 +269,6 @@ define(function (require, exports, module) {
   }
   
   PhpCompletion.prototype.insertHint = function(hint) {
-    
     // var cursor = this.editor.getCursorPos();
     // var lineBeginning = {line:cursor.line,ch:0};
     // var textBeforeCursor = this.editor.document.getRange(lineBeginning, cursor);
