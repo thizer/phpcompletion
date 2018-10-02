@@ -9,9 +9,11 @@ define(function (require, exports, module) {
       EditorManager         = brackets.getModule("editor/EditorManager"),
       CodeHintManager       = brackets.getModule("editor/CodeHintManager"),
       ProjectManager        = brackets.getModule("project/ProjectManager"),
+      ExtensionUtils        = brackets.getModule('utils/ExtensionUtils'),
       phpParser             = require('php-parser/dist/php-parser')
       ;
 
+  ExtensionUtils.loadStyleSheet(module, 'styles/thizer-phpcompletion.css');
 
   /**
    * The object
@@ -133,7 +135,38 @@ define(function (require, exports, module) {
       var classBody = docParsed.children[0].children[0].body
       
       for (var i=0; i<classBody.length; i++) {
-        this.hints.push(classBody[i].name)
+        
+        var hint = $('<span>').attr('class', 'thizer')
+        
+        switch (classBody[i].visibility) {
+          case 'public':
+            hint.append('<i class="fa fa-globe-americas thizer-text-success"></i> ')
+            break;
+          case 'protected':
+            hint.append('<i class="fa fa-map-marker-alt thizer-text-warning"></i> ')
+            break;
+          case 'private':
+            hint.append('<i class="fa fa-lock thizer-text-danger"></i> ')
+            break;
+        }
+        
+        var hintname = classBody[i].name
+        
+        if (classBody[i].kind === 'method') {
+          
+          var args = ''
+          for (var a in classBody[i].arguments) {
+            args += ', $'+classBody[i].arguments[a].name
+          }
+          
+          hintname += '('+(args.replace(', ', ''))+')'
+        }
+        
+        hint.append(hintname)
+        
+        console.log(classBody[i])
+        
+        this.hints.push(hint)
       }
 
     } else if ((whatIsIt[0] === '$') && (whatIsIt.indexOf('>') !== -1)) {
