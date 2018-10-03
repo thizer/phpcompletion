@@ -98,6 +98,17 @@ define(function (require, exports, module) {
         hintname += ' = '+bodyArray[i].value.raw
       }
       hint.append(hintname)
+      
+      /**
+       * Comments
+       */
+      if (undefined !== bodyArray[i].leadingComments) {
+        for (var c in bodyArray[i].leadingComments) {
+          var com = bodyArray[i].leadingComments[c]
+          
+//          console.log(com.value.split('\n'))
+        }
+      }
 
       // Add to the return
       hints.push(hint)
@@ -275,6 +286,8 @@ define(function (require, exports, module) {
     // var indexOfTheSymbol = textBeforeCursor.search(this.currentTokenDefinition);
     // var replaceStart = {line:cursor.line,ch:indexOfTheSymbol};
     // this.editor.document.replaceRange(hint, replaceStart, cursor);
+    
+    console.log(hint)
     
     return false
   }
