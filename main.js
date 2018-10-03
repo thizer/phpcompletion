@@ -111,7 +111,7 @@ define(function (require, exports, module) {
       var hint = $('<span>').attr({
         "id": "thizer-"+hintname.toLowerCase(),
         "class": "thizer-hint",
-        "data-hintname": hintname
+        "data-content": hintname
       })
       
       /**
@@ -163,6 +163,7 @@ define(function (require, exports, module) {
           break;
       }
       
+      // Hint is a method
       if (bodyArray[i].kind === 'method') {
         var args = ''
         for (var a in bodyArray[i].arguments) {
@@ -173,7 +174,7 @@ define(function (require, exports, module) {
         /**
          * Must update $('.thizer-hint').data('hintname')
          */
-        hint.data('hintname', hintname)
+        hint.data('content', hintname)
         
       } else if (bodyArray[i].kind === 'classconstant') {
         hintname += ' = '+bodyArray[i].value.raw
@@ -358,15 +359,21 @@ define(function (require, exports, module) {
   }
   
   PhpCompletion.prototype.insertHint = function(hint) {
-    var cursor = this.editor.getCursorPos();
-    var lineBeginning = {line:cursor.line,ch:0};
-    var textBeforeCursor = this.editor.document.getRange(lineBeginning, cursor);
-    var indexOfTheSymbol = textBeforeCursor.indexOf(this.search);
-    var replaceStart = {line:cursor.line,ch:indexOfTheSymbol};
-    this.editor.document.replaceRange(hint.data('hintname'), replaceStart, cursor);
+
+    var cursor = this.editor.getCursorPos()
+    var textBeforeCursor = this.editor.document.getRange({ line:cursor.line, ch: 0 }, cursor);
+
+    var indexOfTheSymbol = cursor.ch
+    if (this.search !== '') {
+      indexOfTheSymbol = textBeforeCursor.indexOf(this.search);
+    }
     
-    // console.log(hint.data('hintname'))
-    
+    // Replace in editor with hint content
+    this.editor.document.replaceRange(hint.data('content'), {
+      line: cursor.line,
+      ch: indexOfTheSymbol
+    }, cursor);
+
     return false
   }
 
