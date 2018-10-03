@@ -53,16 +53,21 @@ define(function (require, exports, module) {
 
   PhpCompletion.prototype.getDocParsed = function(doc) {
     var content = doc
-    if (typeof doc === 'object') {
-      content = doc.getText()
+    try {
+      if (typeof doc === 'object') {
+
+        // Here we need to identify if file is parseable
+
+        content = doc.getText()
+      }
+
+      // initialize a new parser instance
+      var parser = new phpParser({ parser: { extractDoc: true, php7: true }, ast: { withPositions: true } });
+      var docParsed = parser.parseCode(content)
+    } catch (e) {
+      console.log('Error parsing file, probally it is not saved yet')
+      console.log(e)
     }
-    
-    // initialize a new parser instance
-    var parser = new phpParser({ parser: { extractDoc: true, php7: true }, ast: { withPositions: true } });
-
-    var docParsed = parser.parseCode(content)
-    console.log(docParsed.errors)
-
     return docParsed
   }
   
@@ -152,7 +157,7 @@ define(function (require, exports, module) {
       visibity = 'public|protected|private'
     }
     
-    if (!docParsed.errors.length) {
+    if ((undefined !== docParsed) && (!docParsed.errors.length)) {
       for (var i in docParsed.children) {
         var item = docParsed.children[i]
         
