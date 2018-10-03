@@ -14,6 +14,7 @@ define(function (require, exports, module) {
       phpParser             = require('php-parser/dist/php-parser')
       ;
 
+  ExtensionUtils.loadStyleSheet(module, 'styles/fontawesome.css');
   ExtensionUtils.loadStyleSheet(module, 'styles/thizer-phpcompletion.css');
   
   /**
