@@ -13,6 +13,6 @@ Yes, I mean a full and robust autocomplete code for PHP on Brackets.
 To install you can download it as a zip file (here in that 'clone or download' green button, over there).
 But we **strongly** recommend you to install on the Brackets following:
 
-`File menu` > `Extension Manager...` > `Available` > `Search input` > **Type for php autocomplete**
+`File menu` > `Extension Manager...` > `Available` > `Search input field` > **Type for** `php completion`
 
 It will download and also manage updates.
