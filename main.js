@@ -21,6 +21,8 @@ define(function (require, exports, module) {
    * The object
    */
   function PhpCompletion() {
+    this.insertHintOnTab = true
+
     this.phpFiles = []
     this.hints = []
 
@@ -96,20 +98,18 @@ define(function (require, exports, module) {
     var docParsed = $this.getDocParsed(doc)
     var bodyArray = $this.getBodyArray(docParsed)
     
-//    console.log(bodyArray)
-    
     for (var i in bodyArray) {
       var hintname = bodyArray[i].name
       
-      // console.log([hintname, this.search, hintname.indexOf(this.search)])
+      // console.log([hintname.toLowerCase(), this.search, hintname.toLowerCase().indexOf(this.search)])
 
       // If the hint doesnt match the search
-      if ((this.search !== '') && (hintname.indexOf(this.search) === -1)) {
-        continue
+      if ((this.search !== '') && (hintname.toLowerCase().indexOf(this.search) === -1)) {
+        continue;
       }
 
       var hint = $('<span>').attr({
-        "id": "thizer-"+hintname,
+        "id": "thizer-"+hintname.toLowerCase(),
         "class": "thizer-hint",
         "data-hintname": hintname
       })
@@ -140,9 +140,8 @@ define(function (require, exports, module) {
             }
           }
 
+          /** Comments must to be small (2 lines only) */
           commentSpan.html(commentText+commentAnn+" */")
-          // commentSpan.html(comment.replace(/\n/g, '<br/>'))
-//          console.log()
         }
         
         hint.append(commentSpan)
@@ -170,6 +169,11 @@ define(function (require, exports, module) {
           args += ', $'+bodyArray[i].arguments[a].name
         }
         hintname += '('+(args.replace(', ', ''))+')'
+
+        /**
+         * Must update $('.thizer-hint').data('hintname')
+         */
+        hint.data('hintname', hintname)
         
       } else if (bodyArray[i].kind === 'classconstant') {
         hintname += ' = '+bodyArray[i].value.raw
@@ -347,21 +351,21 @@ define(function (require, exports, module) {
   {
     return {
       hints: this.hints,
-      match: this.search,
-      selectInitial: true,
+      match: null,
+      selectInitial: false,
       handleWideResults: true
     }
   }
   
   PhpCompletion.prototype.insertHint = function(hint) {
-    // var cursor = this.editor.getCursorPos();
-    // var lineBeginning = {line:cursor.line,ch:0};
-    // var textBeforeCursor = this.editor.document.getRange(lineBeginning, cursor);
-    // var indexOfTheSymbol = textBeforeCursor.search(this.currentTokenDefinition);
-    // var replaceStart = {line:cursor.line,ch:indexOfTheSymbol};
-    // this.editor.document.replaceRange(hint, replaceStart, cursor);
+    var cursor = this.editor.getCursorPos();
+    var lineBeginning = {line:cursor.line,ch:0};
+    var textBeforeCursor = this.editor.document.getRange(lineBeginning, cursor);
+    var indexOfTheSymbol = textBeforeCursor.indexOf(this.search);
+    var replaceStart = {line:cursor.line,ch:indexOfTheSymbol};
+    this.editor.document.replaceRange(hint.data('hintname'), replaceStart, cursor);
     
-    console.log(hint)
+    // console.log(hint.data('hintname'))
     
     return false
   }
