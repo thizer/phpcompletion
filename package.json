@@ -1,7 +1,7 @@
 {
   "name": "thizer.phpcompletion",
   "title": "PHP Completion (AutoComplete)",
-  "description": "Work in progress - With this plugin you will be able to auto insert local variables, attributes and methods from the hierarchical tree, constants, defined functions, namespaces, classes, interfaces, etc... Yes, I mean a full and robust autocomplete code for PHP on Brackets.",
+  "description": "Work in progress - With this plugin you will be able to auto insert local variables, attributes and methods from the hierarchical tree, constants, defined functions, namespaces, classes, etc... Yes, I mean a full and robust autocomplete code for PHP on Brackets.",
   "homepage": "https://github.com/thizer/phpcompletion",
   "version": "1.0.2",
   "author": "Thizer <thizerdev@gmail.com> (https://www.thizer.com)",
@@ -12,7 +12,7 @@
   "i18n": [ "en", "pt"],
   "package-i18n": {
       "pt": {
-          "description": "Trabalhando - Com este plugin você poderá inserir automaticamente variáveis locais, atributos e métodos da árvore hierárquica, constantes, funções definidas, namespaces, classes, interfaces, etc ... Sim, quero dizer um código de autocompletar completo e robusto para PHP no Brackets"
+          "description": "Trabalhando - Com este plugin você poderá inserir automaticamente variáveis locais, atributos e métodos da árvore hierárquica, constantes, funções definidas, namespaces, classes, etc ... Sim, quero dizer um código de autocompletar completo e robusto para PHP no Brackets"
       }
   },
   "keywords":["hint","php","autocomplete"]

@@ -43,35 +43,52 @@ define(function (require, exports, module) {
     var manager = ProjectManager.getAllFiles(function(file,index,result) {
       var ext = file.name.replace(/.+\./, '')
       if (ext === 'php') {
+        file.read(function(err, data) {
+          if (err) throw new err
+        })
+
         $this.phpFiles.push(file)
       }
     })
 
     manager.done(function(allFiles) {
-      console.log('All files loaded')
+      console.log('We loaded all the '+$this.phpFiles.length+' PHP files found')
     })
   }
 
   PhpCompletion.prototype.getDocParsed = function(doc) {
     var content = doc
     try {
-      if (typeof doc === 'object') {
-
-        // Here we need to identify if file is parseable
-
-        content = doc.getText()
-      }
 
       // initialize a new parser instance
       var parser = new phpParser({ parser: { extractDoc: true, php7: true }, ast: { withPositions: true } });
+
+      // Try to get content from text
+      if (typeof doc === 'object') {
+
+        // Is not saved yet
+        if (doc.isDirty) {
+          content = doc.file._contents
+        } else {
+          content = doc.getText()
+        }
+      }
+      
       var docParsed = parser.parseCode(content)
     } catch (e) {
-      console.log('Error parsing file, probally it is not saved yet')
-      console.log(e)
+      // console.log('Error parsing file, probally it is not saved yet')
+      // console.log(e)
     }
     return docParsed
   }
   
+  /**
+   * Extract from a class document all content and turns it to hints
+   * 
+   * @param  {[type]} doc        [description]
+   * @param  {[type]} visibility [description]
+   * @return {[type]}            [description]
+   */
   PhpCompletion.prototype.extractClassObjs = function(doc, visibility) {
     var $this = this
     var hints = []
@@ -150,6 +167,13 @@ define(function (require, exports, module) {
     return hints
   }
   
+  /**
+   * An array with all document (file) class contents
+   * 
+   * @param  {[type]} docParsed [description]
+   * @param  {[type]} visibity  [description]
+   * @return {[type]}           [description]
+   */
   PhpCompletion.prototype.getBodyArray = function(docParsed, visibity) {
     var $this = this
     var bodyArray = []
@@ -166,49 +190,13 @@ define(function (require, exports, module) {
           case 'class':
             
             // Check for visibility
-            for (var b in item.body) {
-              var prop = item.body[b]
-              if (visibity.indexOf(prop.visibility) !== -1) {
-                bodyArray.push(prop)
-              }
-            }
+            bodyArray = bodyArray.concat($this.getBodyArrayFromClass(item, visibity))
             break
             
           case 'namespace':
             for (var c in item.children) {
               if (item.children[c].kind === 'class') {
-                
-                // Check for visibility
-                for (var b in item.children[c].body) {
-                  var prop = item.children[c].body[b]
-                  if (visibity.indexOf(prop.visibility) !== -1) {
-                    bodyArray.push(prop)
-                  }
-                }
-                
-                // Class parent
-                if (item.children[c].extends) {
-                  var parentName = item.children[c].extends.name
-                  
-                  for (var f in $this.phpFiles) {
-                    if ($this.phpFiles[f].name.indexOf(parentName) !== -1) {
-                      
-                      var wait=true
-                      
-                      console.log('passo1')
-                      $this.phpFiles[f].read(function(err, data, encoding, stat) {
-                        console.log('passo2')
-                        if (err) return;
-                        bodyArray = bodyArray.concat($this.getBodyArray($this.getDocParsed(data), 'public|protected'))
-                        wait = false
-                      })
-                      console.log('passo3')
-                      
-//                      while(wait) { }
-                    }
-                  }
-                }
-                
+                bodyArray = bodyArray.concat($this.getBodyArrayFromClass(item.children[c], visibity))
               }
             }
             break
@@ -218,6 +206,48 @@ define(function (require, exports, module) {
     
     // Return a list of accessible properties from the file
     return bodyArray
+  }
+
+  /**
+   * From a class we get the body content
+   * 
+   * @param  {[type]} theClass [description]
+   * @param  {[type]} visibity [description]
+   * @return {[type]}          [description]
+   */
+  PhpCompletion.prototype.getBodyArrayFromClass = function(theClass, visibity) {
+    var $this = this
+    var result = []
+    for (var b in theClass.body) {
+      var prop = theClass.body[b]
+      if (visibity.indexOf(prop.visibility) !== -1) {
+        result.push(prop)
+      }
+    }
+
+    // Class parent
+    if (theClass.extends) {
+      var parentName = theClass.extends.name
+      
+      for (var f in $this.phpFiles) {
+        if ($this.phpFiles[f].name.indexOf(parentName) !== -1) {
+          result = result.concat($this.getBodyArray($this.getDocParsed($this.phpFiles[f]._contents), 'public|protected'))
+        }
+      } // Endfor
+
+    } // End extends
+
+    // For while we are not able to find Interface methods =/
+    // 
+    // if (theClass.implements) {
+    //   for (var I in theClass.implements) {
+    //     var Interface = theClass.implements[I]
+
+    //     console.log(Interface.arguments())        
+    //   }
+    // }
+
+    return result
   }
 
   /**
