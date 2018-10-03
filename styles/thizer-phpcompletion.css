@@ -1,19 +1,29 @@
 
 .thizer-text-success {
-  color: chartreuse;
+  padding: 5px;
+  border-radius: 100%;
+  background-color: #2d7d27;
+  color: #fff;
 }
 
 .thizer-text-warning {
-  color: darkgoldenrod;
+  padding: 5px;
+  border-radius: 100%;
+  background-color: #af8205;
+  color: #fff;
 }
 
 .thizer-text-danger {
-  color: crimson;
+  padding: 5px;
+  border-radius: 100%;
+  background-color: #da3a3a;
+  color: #fff;
 }
 
 .thizer-hint {
   display: block;
   min-width: 250px;
+  margin: 10px;
 }
 .thizer-hint-def {
   display: block;
@@ -26,4 +36,8 @@
 .wide-result.highlight .thizer-comment {
   display: inline-block !important;
   color: #999;
+}
+
+.codehint-menu > .dropdown-menu {
+  min-width: 500px !important;
 }

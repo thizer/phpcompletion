@@ -124,9 +124,25 @@ define(function (require, exports, module) {
         })
         
         for (var c in bodyArray[i].leadingComments) {
-          var com = bodyArray[i].leadingComments[c]
-          commentSpan.html(com.value.replace(/\n/g, '<br/>'))
-//          console.log(com.value.split('\n'))
+          var com = bodyArray[i].leadingComments[c].value.split('\n')
+
+          var commentText = ""
+          var commentAnn = ""
+          for (var cL in com) {
+            var comLine = com[cL].replace(/^[/*\s]+/gi, '').trim()
+            if (comLine === '') {
+              continue
+            }
+            if (comLine.indexOf('@return') !== -1) {
+              commentAnn = "<br/>&nbsp;&nbsp;* <b>"+comLine+"</b>"
+            } else if (commentText === '') {
+              commentText = "/** "+comLine+" [more...]"
+            }
+          }
+
+          commentSpan.html(commentText+commentAnn+" */")
+          // commentSpan.html(comment.replace(/\n/g, '<br/>'))
+//          console.log()
         }
         
         hint.append(commentSpan)
