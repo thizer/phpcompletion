@@ -1,2 +1,17 @@
 # phpcompletion
-A PHP completion for [Brackets](https://brackets.io) 
+
+### A PHP autocomplete for [Brackets](https://brackets.io) 
+
+With this plugin you will be able to auto insert local variables, attributes and methods from the hierarchical tree,
+constants, defined functions, namespaces, classes, interfaces, etc...
+
+Yes, I mean a full and robust autocomplete code for PHP on Brackets.
+
+### Install
+
+To install you can download it as a zip file (here in that 'clone or download' green button, over there).
+But we **strongly** recommend you to install on the Brackets following:
+
+`File menu` > `Extension Manager...` > `Available` > `Search input` > **Type for php autocomplete**
+
+It will download and also manage updates.
