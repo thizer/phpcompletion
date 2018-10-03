@@ -1,4 +1,5 @@
 # phpcompletion
+## Powered by: [Thizer Aplicativos e Sistemas](https://www.thizer.com/)
 
 ### A PHP autocomplete for [Brackets](https://brackets.io) 
 
