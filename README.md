@@ -11,7 +11,7 @@ Yes, I mean a full and robust autocomplete code for PHP on Brackets.
 
 ### Install
 
-To install you can download it as a zip file (here in that 'clone or download' green button, over there).
+To install you can download it as a zip file and extract to `~/.config/Brackets/extensions/user/` folder.
 But we **strongly** recommend you to install on the Brackets as following:
 
 `File menu` > `Extension Manager...` > `Available` > `Search input field` > **Type** `php completion`
