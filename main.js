@@ -23,6 +23,11 @@ define(function (require, exports, module) {
     this.phpFiles = []
     this.hints = []
 
+    this.editor
+    this.cursor
+    this.whatIsIt
+    this.search
+
     this.loadFiles()
   }
 
@@ -54,7 +59,11 @@ define(function (require, exports, module) {
     
     // initialize a new parser instance
     var parser = new phpParser({ parser: { extractDoc: true, php7: true }, ast: { withPositions: true } });
-    return parser.parseCode(content)
+
+    var docParsed = parser.parseCode(content)
+    console.log(docParsed.errors)
+
+    return docParsed
   }
   
   PhpCompletion.prototype.extractClassObjs = function(doc, visibility) {
@@ -69,6 +78,13 @@ define(function (require, exports, module) {
     for (var i in bodyArray) {
       var hintname = bodyArray[i].name
       
+      // console.log([hintname, this.search, hintname.indexOf(this.search)])
+
+      // If the hint doesnt match the search
+      if ((this.search !== '') && (hintname.indexOf(this.search) === -1)) {
+        continue
+      }
+
       var hint = $('<span>').attr({
         "id": "thizer-"+hintname,
         "class": "thizer-hint",
@@ -216,17 +232,19 @@ define(function (require, exports, module) {
     }
 
     // Get needle information
-    var cursor = editor.getCursorPos()
-    var curCharPos = cursor.ch
-    var curLinePos = cursor.line
+    this.editor = editor
+    this.cursor = editor.getCursorPos()
+    var curCharPos = this.cursor.ch
+    var curLinePos = this.cursor.line
     var lineStr = editor._codeMirror.getLine(curLinePos)
     var totalLines = editor._codeMirror.doc.size
 
-    var whatIsIt = lineStr.substr(0, curCharPos).replace(/.+(\s|\(|\,|\.)/, '')
+    this.whatIsIt = lineStr.substr(0, curCharPos).replace(/.+(\s|\(|\,|\.)/, '')
+    this.search = lineStr.substr(0, curCharPos).replace(/.+(\s|\(|\,|\.)/, '')
     
     // Get Variables
-    if (whatIsIt.indexOf('$') !== -1) {
-      whatIsIt = '$'+(whatIsIt.replace(/(.+)?\$/gi, ''))
+    if (this.whatIsIt.indexOf('$') !== -1) {
+      this.whatIsIt = '$'+(this.whatIsIt.replace(/(.+)?\$/gi, ''))
     }
 
     /**
@@ -234,23 +252,25 @@ define(function (require, exports, module) {
      * hints to complete the code
      */
     
-    if (whatIsIt.indexOf('$this') !== -1) {
+    if (this.whatIsIt.indexOf('$this') !== -1) {
       
+      // Redefine the search term and look for it into classes
+      this.search = this.search.replace(/\$this(-\>)?/, '')
       var classHints = this.extractClassObjs(editor.document)
       
       for (var i in classHints) {
         this.hints.push(classHints[i])
       }
 
-    } else if ((whatIsIt[0] === '$') && (whatIsIt.indexOf('>') !== -1)) {
+    } else if ((this.whatIsIt[0] === '$') && (this.whatIsIt.indexOf('>') !== -1)) {
 
       console.log('A class instance object')
 
-    } else if (whatIsIt[0] === '$') {
+    } else if (this.whatIsIt[0] === '$') {
 
       console.log('A local variable')
 
-    } else if (lineStr.indexOf('new '+whatIsIt)) {
+    } else if (lineStr.indexOf('new '+this.whatIsIt)) {
 
       console.log('New Instance')
 
@@ -273,19 +293,9 @@ define(function (require, exports, module) {
    */
   PhpCompletion.prototype.getHints = function (implicitChar)
   {
-    // editor = EditorManager.getFocusedEditor()
-    // cursor = editor.getCursorPos()
-    // token  = TokenUtils.getInitialContext(editor._codeMirror, cursor);
-
-    // var result = []
-
-    // for (var i in phpFiles) {
-    //   result.push(phpFiles[i].name)
-    // }
-    
     return {
       hints: this.hints,
-      match: null,
+      match: this.search,
       selectInitial: true,
       handleWideResults: true
     }
