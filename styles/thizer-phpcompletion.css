@@ -1,29 +1,31 @@
 
 .thizer-text-success {
-  padding: 5px;
+  padding: 3px;
   border-radius: 100%;
   background-color: #2d7d27;
   color: #fff;
 }
 
 .thizer-text-warning {
-  padding: 5px;
+  padding: 3px;
   border-radius: 100%;
   background-color: #af8205;
   color: #fff;
 }
 
 .thizer-text-danger {
-  padding: 5px;
+  padding: 3px;
   border-radius: 100%;
   background-color: #da3a3a;
   color: #fff;
 }
 
 .thizer-hint {
+  /*font-size: 9pt !important;*/
+  font-size: .75rem !important;
   display: block;
   min-width: 250px;
-  margin: 10px;
+  margin: 0 10px;
 }
 .thizer-hint-def {
   display: block;

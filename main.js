@@ -271,6 +271,56 @@ define(function (require, exports, module) {
     return result
   }
 
+  PhpCompletion.prototype.findScopeByStr = function(str, cursor, doc) {
+    var scope = []
+    var docParsed = this.getDocParsed(doc)
+
+    for (var p in docParsed.children) {
+      var program = docParsed.children[p]
+
+      // assign
+      // function if inside
+      // class if inside
+      // namespace if inside
+      
+      switch (program.kind) {
+        case 'assign':
+
+          break;
+        case 'function':
+
+          break;
+        case 'class':
+
+          break;
+        case 'namespace':
+
+          for (var c in program.children) {
+            var theClass = program.children[c]
+            if (theClass.kind == 'class') {
+
+              for (var m in theClass.body) {
+                var method = theClass.body[m]
+                if (method.kind == 'method') {
+
+                  if ((method.body.loc.start.line <= cursor.line) && (method.body.loc.end.line >= cursor.line)) {
+                    scope = method.body
+                    break
+                    break
+                  }
+
+                }
+              } // End for
+
+            }
+          } // End for
+
+          break;
+      }
+    }
+    return scope
+  }
+
   /**
    * Method called by HintProvider
    * 
@@ -294,7 +344,7 @@ define(function (require, exports, module) {
     var curCharPos = this.cursor.ch
     var curLinePos = this.cursor.line
     var lineStr = editor._codeMirror.getLine(curLinePos)
-    var totalLines = editor._codeMirror.doc.size
+    // var totalLines = editor._codeMirror.doc.size
 
     this.whatIsIt = lineStr.substr(0, curCharPos).replace(/.+(\s|\(|\,|\.)/, '')
     this.search = lineStr.substr(0, curCharPos).replace(/.+(\s|\(|\,|\.)/, '')
@@ -319,13 +369,16 @@ define(function (require, exports, module) {
         this.hints.push(classHints[i])
       }
 
-    } else if ((this.whatIsIt[0] === '$') && (this.whatIsIt.indexOf('>') !== -1)) {
-
-      console.log('A class instance object')
-
     } else if (this.whatIsIt[0] === '$') {
 
-      console.log('A local variable')
+      if (this.whatIsIt.indexOf('>') !== -1) {
+        console.log('A class instance object')
+      } else {
+
+        var scope = this.findScopeByStr(this.search, this.cursor, editor.document)
+
+        console.log(scope)
+      }
 
     } else if (lineStr.indexOf('new '+this.whatIsIt)) {
 
