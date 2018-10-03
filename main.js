@@ -15,11 +15,6 @@ define(function (require, exports, module) {
       ;
 
   ExtensionUtils.loadStyleSheet(module, 'styles/thizer-phpcompletion.css');
-
-  function theFuckingRef(a,b,c) {
-    console.log('eita')
-    console.log([a,b,c])
-  }
   
   /**
    * The object
@@ -96,19 +91,21 @@ define(function (require, exports, module) {
         }
         
         hint.append(commentSpan)
-        hint.append("<br/>")
       }
       
       /** Hint itself **/
+      var def = $('<span>').attr({
+        'class': 'thizer-hint-def'
+      })
       switch (bodyArray[i].visibility) {
         case 'public':
-          hint.append('<i class="fa fa-globe-americas thizer-text-success"></i> ')
+          def.append('<i class="fa fa-globe-americas thizer-text-success"></i> ')
           break;
         case 'protected':
-          hint.append('<i class="fa fa-map-marker-alt thizer-text-warning"></i> ')
+          def.append('<i class="fa fa-map-marker-alt thizer-text-warning"></i> ')
           break;
         case 'private':
-          hint.append('<i class="fa fa-lock thizer-text-danger"></i> ')
+          def.append('<i class="fa fa-lock thizer-text-danger"></i> ')
           break;
       }
       
@@ -122,7 +119,8 @@ define(function (require, exports, module) {
       } else if (bodyArray[i].kind === 'classconstant') {
         hintname += ' = '+bodyArray[i].value.raw
       }
-      hint.append(hintname)
+      def.append(hintname)
+      hint.append(def)
       
       // Add to the return
       hints.push(hint)

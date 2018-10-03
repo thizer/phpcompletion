@@ -11,6 +11,18 @@
   color: crimson;
 }
 
+.thizer-hint {
+  display: block;
+  min-width: 250px;
+}
+.thizer-hint-def {
+  display: block;
+}
+
+.wide-result::before {
+  content: '';
+  display: none;
+}
 .wide-result.highlight .thizer-comment {
   display: inline-block !important;
   color: #999;
