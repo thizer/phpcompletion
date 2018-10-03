@@ -72,8 +72,34 @@ define(function (require, exports, module) {
 //    console.log(bodyArray)
     
     for (var i in bodyArray) {
-      var hint = $('<span>').attr('class', 'thizer')
-
+      var hintname = bodyArray[i].name
+      
+      var hint = $('<span>').attr({
+        "id": "thizer-"+hintname,
+        "class": "thizer-hint",
+        "data-hintname": hintname
+      })
+      
+      /**
+       * Comments
+       */
+      if (undefined !== bodyArray[i].leadingComments) {
+        var commentSpan = $("<span>").attr({
+          "class": "thizer-comment",
+          "style": "display: none;"
+        })
+        
+        for (var c in bodyArray[i].leadingComments) {
+          var com = bodyArray[i].leadingComments[c]
+          commentSpan.html(com.value.replace(/\n/g, '<br/>'))
+//          console.log(com.value.split('\n'))
+        }
+        
+        hint.append(commentSpan)
+        hint.append("<br/>")
+      }
+      
+      /** Hint itself **/
       switch (bodyArray[i].visibility) {
         case 'public':
           hint.append('<i class="fa fa-globe-americas thizer-text-success"></i> ')
@@ -85,8 +111,7 @@ define(function (require, exports, module) {
           hint.append('<i class="fa fa-lock thizer-text-danger"></i> ')
           break;
       }
-
-      var hintname = bodyArray[i].name
+      
       if (bodyArray[i].kind === 'method') {
         var args = ''
         for (var a in bodyArray[i].arguments) {
@@ -99,17 +124,6 @@ define(function (require, exports, module) {
       }
       hint.append(hintname)
       
-      /**
-       * Comments
-       */
-      if (undefined !== bodyArray[i].leadingComments) {
-        for (var c in bodyArray[i].leadingComments) {
-          var com = bodyArray[i].leadingComments[c]
-          
-//          console.log(com.value.split('\n'))
-        }
-      }
-
       // Add to the return
       hints.push(hint)
     }

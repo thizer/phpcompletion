@@ -11,6 +11,11 @@
   color: crimson;
 }
 
+.wide-result.highlight .thizer-comment {
+  display: inline-block !important;
+  color: #999;
+}
+
 /* FONT AWESOME FREE SOLID */
 /*!
  * Font Awesome Free 5.3.1 by @fontawesome - https://fontawesome.com
