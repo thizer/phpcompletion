@@ -99,7 +99,11 @@ define(function (require, exports, module) {
     var bodyArray = $this.getBodyArray(docParsed)
     
     for (var i in bodyArray) {
-      var hintname = bodyArray[i].name
+      
+      console.log(bodyArray[i])
+
+      var prop = bodyArray[i].propObj
+      var hintname = prop.name
       
       // console.log([hintname.toLowerCase(), this.search, hintname.toLowerCase().indexOf(this.search)])
 
@@ -117,14 +121,14 @@ define(function (require, exports, module) {
       /**
        * Comments
        */
-      if (undefined !== bodyArray[i].leadingComments) {
+      if (undefined !== prop.leadingComments) {
         var commentSpan = $("<span>").attr({
           "class": "thizer-comment",
           "style": "display: none;"
         })
         
-        for (var c in bodyArray[i].leadingComments) {
-          var com = bodyArray[i].leadingComments[c].value.split('\n')
+        for (var c in prop.leadingComments) {
+          var com = prop.leadingComments[c].value.split('\n')
 
           var commentText = ""
           var commentAnn = ""
@@ -151,23 +155,23 @@ define(function (require, exports, module) {
       var def = $('<span>').attr({
         'class': 'thizer-hint-def'
       })
-      switch (bodyArray[i].visibility) {
+      switch (prop.visibility) {
         case 'public':
-          def.append('<i class="fa fa-globe-americas thizer-text-success"></i> ')
+          def.append('<i class="fa fa-globe-americas thizer-text-success" title="Public"></i> ')
           break;
         case 'protected':
-          def.append('<i class="fa fa-map-marker-alt thizer-text-warning"></i> ')
+          def.append('<i class="fa fa-map-marker-alt thizer-text-warning" title="Protected"></i> ')
           break;
         case 'private':
-          def.append('<i class="fa fa-lock thizer-text-danger"></i> ')
+          def.append('<i class="fa fa-lock thizer-text-danger" title="Private"></i> ')
           break;
       }
       
       // Hint is a method
-      if (bodyArray[i].kind === 'method') {
+      if (prop.kind === 'method') {
         var args = ''
-        for (var a in bodyArray[i].arguments) {
-          args += ', $'+bodyArray[i].arguments[a].name
+        for (var a in prop.arguments) {
+          args += ', $'+prop.arguments[a].name
         }
         hintname += '('+(args.replace(', ', ''))+')'
 
@@ -176,8 +180,8 @@ define(function (require, exports, module) {
          */
         hint.data('content', hintname)
         
-      } else if (bodyArray[i].kind === 'classconstant') {
-        hintname += ' = '+bodyArray[i].value.raw
+      } else if (prop.kind === 'classconstant') {
+        hintname += ' = '+prop.value.raw
       }
       def.append(hintname)
       hint.append(def)
@@ -195,12 +199,16 @@ define(function (require, exports, module) {
    * @param  {[type]} visibity  [description]
    * @return {[type]}           [description]
    */
-  PhpCompletion.prototype.getBodyArray = function(docParsed, visibity) {
+  PhpCompletion.prototype.getBodyArray = function(docParsed, visibity, inherited) {
     var $this = this
     var bodyArray = []
     
     if (undefined === visibity) {
       visibity = 'public|protected|private'
+    }
+
+    if (undefined === inherited) {
+      inherited = false
     }
     
     if ((undefined !== docParsed) && (!docParsed.errors.length)) {
@@ -211,13 +219,13 @@ define(function (require, exports, module) {
           case 'class':
             
             // Check for visibility
-            bodyArray = bodyArray.concat($this.getBodyArrayFromClass(item, visibity))
+            bodyArray = bodyArray.concat($this.getBodyArrayFromClass(item, visibity, inherited))
             break
             
           case 'namespace':
             for (var c in item.children) {
               if (item.children[c].kind === 'class') {
-                bodyArray = bodyArray.concat($this.getBodyArrayFromClass(item.children[c], visibity))
+                bodyArray = bodyArray.concat($this.getBodyArrayFromClass(item.children[c], visibity, inherited))
               }
             }
             break
@@ -236,13 +244,19 @@ define(function (require, exports, module) {
    * @param  {[type]} visibity [description]
    * @return {[type]}          [description]
    */
-  PhpCompletion.prototype.getBodyArrayFromClass = function(theClass, visibity) {
+  PhpCompletion.prototype.getBodyArrayFromClass = function(theClass, visibity, inherited) {
     var $this = this
     var result = []
     for (var b in theClass.body) {
       var prop = theClass.body[b]
       if (visibity.indexOf(prop.visibility) !== -1) {
-        result.push(prop)
+
+        result.push({
+          "propObj": prop,
+          "inherited": (inherited ? true : false),
+          "className": theClass.name,
+          "pos": theClass.pos
+        })
       }
     }
 
@@ -252,7 +266,7 @@ define(function (require, exports, module) {
       
       for (var f in $this.phpFiles) {
         if ($this.phpFiles[f].name.indexOf(parentName) !== -1) {
-          result = result.concat($this.getBodyArray($this.getDocParsed($this.phpFiles[f]._contents), 'public|protected'))
+          result = result.concat($this.getBodyArray($this.getDocParsed($this.phpFiles[f]._contents), 'public|protected', true))
         }
       } // Endfor
 
