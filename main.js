@@ -1,6 +1,29 @@
 /*jslint vars: true, plusplus: true, devel: true, nomen: true, regexp: true, indent: 4, maxerr: 50 */
 /*global define, $, brackets, window */
 
+/**
+ *  Return true while the string starts as search param
+ * 
+ * str <==> search
+ * $ === $this->                   (true)
+ * $t === $this->                  (true)
+ * $th === $this->                 (true)
+ * $thi === $this->                (true)
+ * $this === $this->               (true)
+ * $this- === $this->              (true)
+ * $this-> === $this->             (true)
+ * $this->anythingelse === $this-> (true)
+ * $otherstuff === $this->         (false)
+ * 
+ * @param  {[string]} search The therm you wanna search for
+ * @return {[bool]}        
+ */
+String.prototype.startsWithAny = function(search) {
+  var len = (this.length > search.length) ? search.length : this.length
+  // console.log([search.substr(0, len), this.substr(0, len)])
+  return (search.substr(0, len) === this.substr(0, len))
+}
+
 /** Simple extension that adds a "File > Hello World" menu item */
 define(function (require, exports, module) {
   "use strict";
@@ -25,7 +48,9 @@ define(function (require, exports, module) {
 
     this.phpFiles = []
     this.hints = []
+    this.isThisRegexp = /^\$(this|thi|th|t)?(-\>)?/
 
+    this.insertIndex
     this.editor
     this.cursor
     this.whatIsIt
@@ -383,6 +408,21 @@ define(function (require, exports, module) {
     return ((loc.start.line < this.cursor.line) && (this.cursor.line < loc.end.line))
   }
 
+  PhpCompletion.prototype.setInsertIndex = function(fromText) {
+    if (undefined === this.editor) {
+      return 0
+    }
+
+    var cursor = this.editor.getCursorPos()
+    var textBeforeCursor = this.editor.document.getRange({ line:cursor.line, ch: 0 }, cursor);
+    this.insertIndex = cursor.ch
+
+    if (fromText !== '') {
+      this.insertIndex = textBeforeCursor.indexOf(fromText);
+    }
+    return this.insertIndex
+  }
+
   /**
    * Method called by HintProvider
    * 
@@ -413,18 +453,29 @@ define(function (require, exports, module) {
     
     // Get Variables
     if (this.whatIsIt.indexOf('$') !== -1) {
+      // Remove everything before $
       this.whatIsIt = '$'+(this.whatIsIt.replace(/(.+)?\$/gi, ''))
     }
+
+    if (this.whatIsIt === '') {
+      return false
+    }
+
+    /**
+     * The found hint will be added from this word
+     */
+    this.setInsertIndex(this.whatIsIt)
 
     /**
      * Depending on the type of element we'll get
      * hints to complete the code
      */
-    
-    if (this.whatIsIt.indexOf('$this') !== -1) {
-      
+    if (this.whatIsIt.startsWithAny('$this->')) {
+
+      this.whatIsIt = '$this->'
+
       // Redefine the search term and look for it into classes
-      this.search = this.search.replace(/\$this(-\>)?/, '')
+      this.search = this.search.replace(this.isThisRegexp, '')
       var classHints = this.extractClassObjs(editor.document)
       
       for (var i in classHints) {
@@ -474,20 +525,15 @@ define(function (require, exports, module) {
   }
   
   PhpCompletion.prototype.insertHint = function(hint) {
+    var $this = this
 
-    var cursor = this.editor.getCursorPos()
-    var textBeforeCursor = this.editor.document.getRange({ line:cursor.line, ch: 0 }, cursor);
+    console.log($this.insertIndex)
 
-    var indexOfTheSymbol = cursor.ch
-    if (this.search !== '') {
-      indexOfTheSymbol = textBeforeCursor.indexOf(this.search);
-    }
-    
     // Replace in editor with hint content
-    this.editor.document.replaceRange(hint.data('content'), {
-      line: cursor.line,
-      ch: indexOfTheSymbol
-    }, cursor);
+    $this.editor.document.replaceRange(("" + $this.whatIsIt + hint.data('content')), {
+      line: $this.cursor.line,
+      ch: $this.insertIndex
+    }, $this.cursor);
 
     return false
   }
