@@ -52,6 +52,7 @@ define(function (require, exports, module) {
 
     this.insertIndex
     this.editor
+    this.lastChar
     this.cursor
     this.whatIsIt
     this.search
@@ -408,6 +409,13 @@ define(function (require, exports, module) {
     return ((loc.start.line < this.cursor.line) && (this.cursor.line < loc.end.line))
   }
 
+  /**
+   * No matter what we do, the completion will be added from here.
+   * We must to provide in the 'this.whatItIs' object the correct string
+   * to be prepended to the hintname
+   * 
+   * @param {[type]} fromText [description]
+   */
   PhpCompletion.prototype.setInsertIndex = function(fromText) {
     if (undefined === this.editor) {
       return 0
@@ -442,6 +450,7 @@ define(function (require, exports, module) {
 
     // Get needle information
     this.editor = editor
+    this.lastChar = implicitChar
     this.cursor = editor.getCursorPos()
     var curCharPos = this.cursor.ch
     var curLinePos = this.cursor.line
@@ -516,6 +525,11 @@ define(function (require, exports, module) {
    */
   PhpCompletion.prototype.getHints = function (implicitChar)
   {
+    /** Fix type delay */
+    if (implicitChar !== this.lastChar) {
+      return false
+    }
+
     return {
       hints: this.hints,
       match: null,
@@ -526,8 +540,6 @@ define(function (require, exports, module) {
   
   PhpCompletion.prototype.insertHint = function(hint) {
     var $this = this
-
-    console.log($this.insertIndex)
 
     // Replace in editor with hint content
     $this.editor.document.replaceRange(("" + $this.whatIsIt + hint.data('content')), {
