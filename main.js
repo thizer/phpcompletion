@@ -367,9 +367,9 @@ define(function (require, exports, module) {
         } else if (item.hasOwnProperty('loc')) {
           
           // Is cursor inside this block?
-          if (item.kind === 'block' && !$this.isCursorInside(item.loc)) {
-            continue
-          }
+          // if (item.kind === 'block' && !$this.isCursorInside(item.loc)) {
+          //   continue
+          // }
 
           // Already below the current line?
           if (item.loc.start.line > $this.cursor.line) {
@@ -424,6 +424,17 @@ define(function (require, exports, module) {
       this.insertIndex = textBeforeCursor.indexOf(fromText);
     }
     return this.insertIndex
+  }
+
+  PhpCompletion.prototype.hintExists = function(hintname) {
+    var exists = false
+    for(var i in this.hints) {
+      if (this.hints[i].data('content') === hintname) {
+        exists = true
+        break
+      }
+    }
+    return exists
   }
 
   /**
@@ -492,18 +503,28 @@ define(function (require, exports, module) {
         console.log('A class instance object')
       } else {
 
-        // var scope = this.findScopeByStr(this.search, editor.document)
-
         var docParsed = this.getDocParsed(editor.document)
         var scope = this.findBlocks(docParsed.children)
+        this.whatIsIt = ''
 
         for (var h in scope) {
           var hint = scope[h]
+          var hintname = null
 
           if (undefined !== hint.name) {
-            this.hints.push(this.getHtmlHint(hint.name, false, false, 'Variable', false))
-          } else {
-            this.hints.push(this.getHtmlHint(hint.left.name, false, false, 'Variable', false))
+            hintname = '$'+hint.name
+          } else if (undefined !== hint.left.name) {
+            hintname = '$'+hint.left.name
+          }
+          
+          // The hint contains the search?
+          if (!hintname || hintname.indexOf(this.search) === -1) {
+            continue
+          }
+          
+          // Add if not exists yet
+          if (!this.hintExists(hintname)) {
+            this.hints.push(this.getHtmlHint(hintname, false, false, 'Variable', false))
           }
         }
       }
@@ -546,6 +567,8 @@ define(function (require, exports, module) {
   
   PhpCompletion.prototype.insertHint = function(hint) {
     var $this = this
+
+    // console.log($this.whatIsIt)
 
     // Replace in editor with hint content
     $this.editor.document.replaceRange(("" + $this.whatIsIt + hint.data('content')), {
