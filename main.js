@@ -100,8 +100,6 @@ define(function (require, exports, module) {
     
     for (var i in bodyArray) {
       
-      console.log(bodyArray[i])
-
       var prop = bodyArray[i].propObj
       var hintname = prop.name
       
@@ -184,6 +182,12 @@ define(function (require, exports, module) {
         hintname += ' = '+prop.value.raw
       }
       def.append(hintname)
+
+      // Is inherited so we show the parent name (float right)
+      if (bodyArray[i].inherited) {
+        def.append('&nbsp;<span class="thizer-hint-parent">'+bodyArray[i].className+'</span>')
+      }
+
       hint.append(def)
       
       // Add to the return
@@ -255,7 +259,7 @@ define(function (require, exports, module) {
           "propObj": prop,
           "inherited": (inherited ? true : false),
           "className": theClass.name,
-          "pos": theClass.pos
+          "loc": theClass.loc
         })
       }
     }
