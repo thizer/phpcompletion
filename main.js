@@ -271,7 +271,8 @@ define(function (require, exports, module) {
     return result
   }
 
-  PhpCompletion.prototype.findScopeByStr = function(str, cursor, doc) {
+  PhpCompletion.prototype.findScopeByStr = function(str, doc) {
+    var $this = this
     var scope = []
     var docParsed = this.getDocParsed(doc)
 
@@ -284,13 +285,25 @@ define(function (require, exports, module) {
       // namespace if inside
       
       switch (program.kind) {
-        case 'assign':
-
-          break;
         case 'function':
 
           break;
         case 'class':
+
+          for (var m in program.body) {
+            var method = program.body[m]
+            if (method.kind == 'method') {
+
+              if ($this.isCursorInside(method.body.loc)) {
+                if (method.arguments.length) {
+                  scope.push(method.arguments)
+                }
+                scope = scope.concat(method.body.children)
+                break
+              }
+
+            }
+          } // End for
 
           break;
         case 'namespace':
@@ -303,8 +316,11 @@ define(function (require, exports, module) {
                 var method = theClass.body[m]
                 if (method.kind == 'method') {
 
-                  if ((method.body.loc.start.line <= cursor.line) && (method.body.loc.end.line >= cursor.line)) {
-                    scope = method.body
+                  if ($this.isCursorInside(method.body.loc)) {
+                    if (method.arguments.length) {
+                      scope.push(method.arguments)
+                    }
+                    scope = scope.concat(method.body.children)
                     break
                     break
                   }
@@ -316,9 +332,37 @@ define(function (require, exports, module) {
           } // End for
 
           break;
+        case 'try':
+
+          var theTry = program
+
+          // Cursor is inside the 
+          if ($this.isCursorInside(theTry.body.loc)) {
+            scope = scope.concat(theTry.body.children)
+          } else {
+            // Here means that the cursor is inside one of the catch blocks 
+            for (var ca in theTry.catches) {
+              if ($this.isCursorInside(theTry.catches[ca].loc)) {
+                scope = scope.concat(theTry.catches[ca].body.children)
+                break
+              }
+            }
+          }
+
+          break;
+        default:
+          // console.log(docParsed)
       }
     }
     return scope
+  }
+
+  /**
+   * Return true if the cursor is after start loc and before end loc
+   */
+  PhpCompletion.prototype.isCursorInside = function(loc) {
+    // console.log(loc.start.line+' < '+this.cursor.line+' > '+loc.end.line)
+    return ((loc.start.line < this.cursor.line) && (this.cursor.line < loc.end.line))
   }
 
   /**
@@ -375,7 +419,7 @@ define(function (require, exports, module) {
         console.log('A class instance object')
       } else {
 
-        var scope = this.findScopeByStr(this.search, this.cursor, editor.document)
+        var scope = this.findScopeByStr(this.search, editor.document)
 
         console.log(scope)
       }
