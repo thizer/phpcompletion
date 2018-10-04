@@ -114,10 +114,9 @@ define(function (require, exports, module) {
    * Extract from a class document all content and turns it to hints
    * 
    * @param  {[type]} doc        [description]
-   * @param  {[type]} visibility [description]
    * @return {[type]}            [description]
    */
-  PhpCompletion.prototype.extractClassObjs = function(doc, visibility) {
+  PhpCompletion.prototype.extractClassObjs = function(doc) {
     var $this = this
     var hints = []
 
@@ -127,99 +126,126 @@ define(function (require, exports, module) {
     for (var i in bodyArray) {
       
       var prop = bodyArray[i].propObj
-      var hintname = prop.name
       
-      // console.log([hintname.toLowerCase(), this.search, hintname.toLowerCase().indexOf(this.search)])
-
       // If the hint doesnt match the search
-      if ((this.search !== '') && (hintname.toLowerCase().indexOf(this.search) === -1)) {
+      if ((this.search !== '') && (prop.name.toLowerCase().indexOf(this.search) === -1)) {
         continue;
       }
 
-      var hint = $('<span>').attr({
-        "id": "thizer-"+hintname.toLowerCase(),
-        "class": "thizer-hint",
-        "data-content": hintname
-      })
-      
-      /**
-       * Comments
-       */
-      if (undefined !== prop.leadingComments) {
-        var commentSpan = $("<span>").attr({
-          "class": "thizer-comment",
-          "style": "display: none;"
-        })
-        
-        for (var c in prop.leadingComments) {
-          var com = prop.leadingComments[c].value.split('\n')
-
-          var commentText = ""
-          var commentAnn = ""
-          for (var cL in com) {
-            var comLine = com[cL].replace(/^[/*\s]+/gi, '').trim()
-            if (comLine === '') {
-              continue
-            }
-            if (comLine.indexOf('@return') !== -1) {
-              commentAnn = "<br/>&nbsp;&nbsp;* <b>"+comLine+"</b>"
-            } else if (commentText === '') {
-              commentText = "/** "+comLine+" [more...]"
-            }
-          }
-
-          /** Comments must to be small (2 lines only) */
-          commentSpan.html(commentText+commentAnn+" */")
-        }
-        
-        hint.append(commentSpan)
-      }
-      
-      /** Hint itself **/
-      var def = $('<span>').attr({
-        'class': 'thizer-hint-def'
-      })
-      switch (prop.visibility) {
-        case 'public':
-          def.append('<i class="fa fa-globe-americas thizer-text-success" title="Public"></i> ')
-          break;
-        case 'protected':
-          def.append('<i class="fa fa-map-marker-alt thizer-text-warning" title="Protected"></i> ')
-          break;
-        case 'private':
-          def.append('<i class="fa fa-lock thizer-text-danger" title="Private"></i> ')
-          break;
-      }
-      
-      // Hint is a method
-      if (prop.kind === 'method') {
-        var args = ''
-        for (var a in prop.arguments) {
-          args += ', $'+prop.arguments[a].name
-        }
-        hintname += '('+(args.replace(', ', ''))+')'
-
-        /**
-         * Must update $('.thizer-hint').data('hintname')
-         */
-        hint.data('content', hintname)
-        
-      } else if (prop.kind === 'classconstant') {
-        hintname += ' = '+prop.value.raw
-      }
-      def.append(hintname)
-
-      // Is inherited so we show the parent name (float right)
-      if (bodyArray[i].inherited) {
-        def.append('&nbsp;<span class="thizer-hint-parent">'+bodyArray[i].className+'</span>')
-      }
-
-      hint.append(def)
-      
-      // Add to the return
-      hints.push(hint)
+      hints.push(this.getHtmlHint(
+        prop.name,
+        ((prop.kind === 'method') ? prop.arguments : false),
+        prop.leadingComments,
+        prop.visibility,
+        ((bodyArray[i].inherited) ? bodyArray[i].className : false)
+      ))
     }
     return hints
+  }
+
+  PhpCompletion.prototype.getHtmlHint = function(hintname, args, comment, visibility, inherited) {
+    var $this = this
+
+    if (!hintname) {
+      return false
+    }
+    if (undefined === args) {
+      args = false
+    }
+    if (undefined === comment) {
+      comment = false
+    }
+    if (undefined === visibility || !visibility) {
+      visibility = 'Unknown type'
+    }
+    if (undefined === inherited) {
+      inherited = false
+    }
+
+    var hint = $('<span>').attr({
+      "id": "thizer-"+hintname.toLowerCase(),
+      "class": "thizer-hint",
+      "data-content": hintname
+    })
+    
+    /**
+     * Comments
+     */
+    if (comment) {
+      var commentSpan = $("<span>").attr({
+        "class": "thizer-comment",
+        "style": "display: none;"
+      })
+      
+      for (var c in comment) {
+        var com = comment[c].value.split('\n')
+
+        var commentText = ""
+        var commentAnn = ""
+        for (var cL in com) {
+          var comLine = com[cL].replace(/^[/*\s]+/gi, '').trim()
+          if (comLine === '') {
+            continue
+          }
+          if (comLine.indexOf('@return') !== -1) {
+            commentAnn = "<br/>&nbsp;&nbsp;* <b>"+comLine+"</b>"
+          } else if (commentText === '') {
+            commentText = "/** "+comLine+" [more...]"
+          }
+        }
+
+        /** Comments must to be small (2 lines only) */
+        commentSpan.html(commentText+commentAnn+" */")
+      }
+      
+      hint.append(commentSpan)
+    }
+    
+    /** Hint itself **/
+    var def = $('<span>').attr({
+      'class': 'thizer-hint-def'
+    })
+    switch (visibility) {
+      case 'public':
+        def.append('<i class="fa fa-globe-americas thizer-type thizer-type-success" title="'+visibility+'"></i> ')
+        break;
+      case 'protected':
+        def.append('<i class="fa fa-map-marker-alt thizer-type thizer-type-warning" title="'+visibility+'"></i> ')
+        break;
+      case 'private':
+        def.append('<i class="fa fa-lock thizer-type thizer-type-danger" title="'+visibility+'"></i> ')
+        break;
+      case 'unknown':
+        def.append('<i class="fa fa-question thizer-type thizer-type-unknown" title="'+visibility+'"></i> ')
+        break;
+      default:
+        def.append('<span class="thizer-type thizer-type-other" title="'+visibility+'">'+visibility.substr(0,1)+'</span> ')
+    }
+    
+    // Hint is a method
+    if (args) {
+      var argStr = ''
+      for (var a in args) {
+        argStr += ', $'+args[a].name
+      }
+      hintname += '('+(argStr.replace(', ', ''))+')'
+
+      // Must update $('.thizer-hint').data('hintname')
+      hint.data('content', hintname)
+    }
+
+    // if (prop.kind === 'classconstant') {
+    //   hintname += ' = '+prop.value.raw
+    // }
+    def.append(hintname)
+
+    // Is inherited so we show the parent name (float right)
+    if (inherited) {
+      def.append('&nbsp;<span class="thizer-hint-parent">'+inherited+'</span>')
+    }
+    hint.append(def)
+
+    return hint
   }
   
   /**
@@ -315,90 +341,59 @@ define(function (require, exports, module) {
     return result
   }
 
-  PhpCompletion.prototype.findScopeByStr = function(str, doc) {
+  /**
+   * This method return the list of objects by the kind
+   * By default assign objects (either arguments)
+   * 
+   * @param  {[type]} objs [description]
+   * @param  {[type]} kind [description]
+   * @return {[type]}      [description]
+   */
+  PhpCompletion.prototype.findBlocks = function(objs, kind) {
     var $this = this
-    var scope = []
-    var docParsed = this.getDocParsed(doc)
+    var result = []
+    // var scopeBlocks = "if|else|else|else|try|catch|finally|method|class|namespace|function"
 
-    for (var p in docParsed.children) {
-      var program = docParsed.children[p]
+    if (undefined === kind) {
+      kind = 'assign'
+    }
 
-      // assign
-      // function if inside
-      // class if inside
-      // namespace if inside
-      
-      switch (program.kind) {
-        case 'function':
+    if (typeof objs === 'object') {
+      for (var i in objs) {
+        var item = objs[i]
 
-          break;
-        case 'class':
-
-          for (var m in program.body) {
-            var method = program.body[m]
-            if (method.kind == 'method') {
-
-              if ($this.isCursorInside(method.body.loc)) {
-                if (method.arguments.length) {
-                  scope.push(method.arguments)
-                }
-                scope = scope.concat(method.body.children)
-                break
-              }
-
-            }
-          } // End for
-
-          break;
-        case 'namespace':
-
-          for (var c in program.children) {
-            var theClass = program.children[c]
-            if (theClass.kind == 'class') {
-
-              for (var m in theClass.body) {
-                var method = theClass.body[m]
-                if (method.kind == 'method') {
-
-                  if ($this.isCursorInside(method.body.loc)) {
-                    if (method.arguments.length) {
-                      scope.push(method.arguments)
-                    }
-                    scope = scope.concat(method.body.children)
-                    break
-                    break
-                  }
-
-                }
-              } // End for
-
-            }
-          } // End for
-
-          break;
-        case 'try':
-
-          var theTry = program
-
-          // Cursor is inside the 
-          if ($this.isCursorInside(theTry.body.loc)) {
-            scope = scope.concat(theTry.body.children)
-          } else {
-            // Here means that the cursor is inside one of the catch blocks 
-            for (var ca in theTry.catches) {
-              if ($this.isCursorInside(theTry.catches[ca].loc)) {
-                scope = scope.concat(theTry.catches[ca].body.children)
-                break
-              }
-            }
+        if (null === item) {
+          continue
+        } else if (item.hasOwnProperty('loc')) {
+          
+          // Is cursor inside this block?
+          if (item.kind === 'block' && !$this.isCursorInside(item.loc)) {
+            continue
           }
 
-          break;
-        default:
-          // console.log(docParsed)
+          // Already below the current line?
+          if (item.loc.start.line > $this.cursor.line) {
+            break
+          }
+        }
+
+        // Get arguments
+        if (item.hasOwnProperty('arguments')) {
+          for (var a in item.arguments) {
+            if (item.arguments[a].kind === 'parameter') {
+              result.push(item.arguments[a])
+            }
+          }
+        }
+
+        if (item.hasOwnProperty('kind') && kind.indexOf(item.kind) !== -1) {
+          result.push(item)
+        } else {
+          result = result.concat($this.findBlocks(item, kind))
+        }
       }
     }
-    return scope
+    return result
   }
 
   /**
@@ -497,9 +492,20 @@ define(function (require, exports, module) {
         console.log('A class instance object')
       } else {
 
-        var scope = this.findScopeByStr(this.search, editor.document)
+        // var scope = this.findScopeByStr(this.search, editor.document)
 
-        console.log(scope)
+        var docParsed = this.getDocParsed(editor.document)
+        var scope = this.findBlocks(docParsed.children)
+
+        for (var h in scope) {
+          var hint = scope[h]
+
+          if (undefined !== hint.name) {
+            this.hints.push(this.getHtmlHint(hint.name, false, false, 'Variable', false))
+          } else {
+            this.hints.push(this.getHtmlHint(hint.left.name, false, false, 'Variable', false))
+          }
+        }
       }
 
     } else if (lineStr.indexOf('new '+this.whatIsIt)) {
