@@ -50,6 +50,8 @@ define(function (require, exports, module) {
     this.hints = []
     this.isThisRegexp = /^\$(this|thi|th|t)?(-\>)?/
 
+    this.AllClassHints = []
+
     this.insertIndex
     this.editor
     this.lastChar
@@ -420,7 +422,7 @@ define(function (require, exports, module) {
     this.insertIndex = cursor.ch
 
     if (fromText !== '') {
-      this.insertIndex = textBeforeCursor.indexOf(fromText);
+      this.insertIndex = textBeforeCursor.lastIndexOf(fromText);
     }
     return this.insertIndex
   }
@@ -489,6 +491,7 @@ define(function (require, exports, module) {
     var curCharPos = this.cursor.ch
     var curLinePos = this.cursor.line
     var lineStr = editor._codeMirror.getLine(curLinePos)
+    var textBeforeCursor = this.editor.document.getRange({line:curLinePos,ch:0}, this.cursor).trim()
     // var totalLines = editor._codeMirror.doc.size
 
     this.whatIsIt = lineStr.substr(0, curCharPos).replace(/.+(\s|\(|\,|\.)/, '')
@@ -558,15 +561,57 @@ define(function (require, exports, module) {
           }
         }
       }
-
-    } else if (lineStr.indexOf('new '+this.whatIsIt)) {
-
-      console.log('New Instance')
-
     } else {
 
-      console.log('Can be anything')
+      // Here we search for 'new' word
+      var textBefore = textBeforeCursor.replace(this.whatIsIt, '').trim()
+      textBefore = textBefore.substr(textBefore.length -3) // 3 last letters
+      if (textBefore === 'new') {
 
+        this.setInsertIndex('new')
+
+        // It will be faster than 'this.findBlocks'
+        if (!this.AllClassHints.length) {
+          for (var f in this.phpFiles) {
+            var file = this.phpFiles[f]
+            var docParsed = this.getDocParsed(file._contents)
+
+            if (docParsed && docParsed.hasOwnProperty('children')) {
+              for (var g in docParsed.children) {
+                var theG = docParsed.children[g]
+                if (theG.kind === 'class') {
+
+                  this.AllClassHints.push(theG.name)
+                  break
+
+                } else if (theG.kind === 'namespace') {
+                  
+                  for (var h in theG.children) {
+                    var theH = theG.children[h]
+                    if (theH.kind === 'class') {
+                      
+                      this.AllClassHints.push('\\'+theG.name+'\\'+theH.name)
+                      break
+                      
+                    }
+                  } // End for
+                }
+              } // End for
+            } // End if
+
+          } // End for
+        }
+
+        for (var lh in this.AllClassHints) {
+          if (!this.hintExists(this.AllClassHints[lh]) && this.AllClassHints[lh].indexOf(this.search) !== -1) {
+            this.hints.push(this.getHtmlHint(this.AllClassHints[lh]+'()', false, false, 'Class', false))
+          }
+        }
+        this.whatIsIt = 'new '
+
+      } else {
+        console.log('anything')
+      }
     }
 
     // var token = TokenUtils.getInitialContext(editor._codeMirror, editor.getCursorPos());

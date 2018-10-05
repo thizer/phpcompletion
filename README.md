@@ -22,6 +22,7 @@ It will download and also manage updates.
 
 - [x] Find properties and methods after type `$this` (including parents classes)
 - [x] Find local (class and/or document scope) variables when type something starting with `$`
+- [x] Find classes (about all documents)
 - [ ] Find by local variable which is a class instance visible properties and methods (with parents)
 - [ ] Find simple functions from scope
 - [ ] Find constants from known scope
