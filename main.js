@@ -215,7 +215,7 @@ define(function (require, exports, module) {
       case 'private':
         def.append('<i class="fa fa-lock thizer-type thizer-type-danger" title="'+visibility+'"></i> ')
         break;
-      case 'unknown':
+      case 'Unknown type':
         def.append('<i class="fa fa-question thizer-type thizer-type-unknown" title="'+visibility+'"></i> ')
         break;
       default:
@@ -366,24 +366,10 @@ define(function (require, exports, module) {
           continue
         } else if (item.hasOwnProperty('loc')) {
           
-          // Is cursor inside this block?
-          // if (item.kind === 'block' && !$this.isCursorInside(item.loc)) {
-          //   continue
-          // }
-
           // Already below the current line?
           if (item.loc.start.line > $this.cursor.line) {
             break
-          } else if (!$this.isCursorInside(item.loc)) {
-            // Cursor is not inside this block
-            // Continue is important because the next block can start before the cursor anyway
-            continue
 
-            // console.log([
-            //   item.kind,
-            //   item.loc.start.line,
-            //   item.loc.end.line
-            // ])
           }
         }
 
@@ -416,7 +402,7 @@ define(function (require, exports, module) {
 
   /**
    * No matter what we do, the completion will be added from here.
-   * We must to provide in the 'this.whatItIs' object the correct string
+   * We must to provide in the 'this.whatIsIt' object the correct string
    * to be prepended to the hintname
    * 
    * @param {[type]} fromText [description]
@@ -438,6 +424,12 @@ define(function (require, exports, module) {
 
   PhpCompletion.prototype.hintExists = function(hintname) {
     var exists = false
+
+    // It is a jquery object?
+    if (typeof hintname === 'object') {
+      hintname = hintname.data('content')
+    }
+
     for(var i in this.hints) {
       if (this.hints[i].data('content') === hintname) {
         exists = true
@@ -495,7 +487,7 @@ define(function (require, exports, module) {
      * Depending on the type of element we'll get
      * hints to complete the code
      */
-    if (this.whatIsIt.startsWithAny('$this->')) {
+    if (this.whatIsIt.indexOf('$this->') !== -1) {
 
       this.whatIsIt = '$this->'
 
@@ -504,7 +496,9 @@ define(function (require, exports, module) {
       var classHints = this.extractClassObjs(editor.document)
       
       for (var i in classHints) {
-        this.hints.push(classHints[i])
+        if (!this.hintExists(classHints[i])) {
+          this.hints.push(classHints[i])
+        }
       }
 
     } else if (this.whatIsIt[0] === '$') {
@@ -534,7 +528,7 @@ define(function (require, exports, module) {
           
           // Add if not exists yet
           if (!this.hintExists(hintname)) {
-            this.hints.push(this.getHtmlHint(hintname, false, false, 'Variable', false))
+            this.hints.push(this.getHtmlHint(hintname, false, false, '$ Variable', false))
           }
         }
       }
@@ -579,13 +573,16 @@ define(function (require, exports, module) {
     var $this = this
 
     // console.log($this.whatIsIt)
+    // console.log(hint.data('content'))
+
+    var hinttext = String($this.whatIsIt + hint.data('content'))
 
     // Replace in editor with hint content
-    $this.editor.document.replaceRange(("" + $this.whatIsIt + hint.data('content')), {
-      line: $this.cursor.line,
-      ch: $this.insertIndex
-    }, $this.cursor);
-
+    $this.editor.document.replaceRange(
+      hinttext,
+      { line: $this.cursor.line, ch: $this.insertIndex },
+      $this.cursor
+    );
     return false
   }
 
