@@ -190,12 +190,12 @@ define(function (require, exports, module) {
           if (comLine.indexOf('@return') !== -1) {
             commentAnn = "<br/>&nbsp;&nbsp;* <b>"+comLine+"</b>"
           } else if (commentText === '') {
-            commentText = "/** "+comLine+" [more...]"
+            commentText = comLine+" [more...]"
           }
         }
 
         /** Comments must to be small (2 lines only) */
-        commentSpan.html(commentText+commentAnn+" */")
+        commentSpan.html("/** "+commentText+commentAnn+" */")
       }
       
       hint.append(commentSpan)
@@ -352,7 +352,7 @@ define(function (require, exports, module) {
   PhpCompletion.prototype.findBlocks = function(objs, kind) {
     var $this = this
     var result = []
-    // var scopeBlocks = "if|else|else|else|try|catch|finally|method|class|namespace|function"
+    // var scopeBlocks = "namespace|class|if|else|elseif|try|catch|finally|method|function|for|foreach|"
 
     if (undefined === kind) {
       kind = 'assign'
@@ -374,6 +374,16 @@ define(function (require, exports, module) {
           // Already below the current line?
           if (item.loc.start.line > $this.cursor.line) {
             break
+          } else if (!$this.isCursorInside(item.loc)) {
+            // Cursor is not inside this block
+            // Continue is important because the next block can start before the cursor anyway
+            continue
+
+            // console.log([
+            //   item.kind,
+            //   item.loc.start.line,
+            //   item.loc.end.line
+            // ])
           }
         }
 
