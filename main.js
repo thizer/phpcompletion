@@ -534,8 +534,6 @@ define(function (require, exports, module) {
         var scope = [].concat(this.findBlocks(docParsed.children), this.getPredefinedVariables())
         this.whatIsIt = ''
 
-        console.log(scope)
-
         for (var h in scope) {
           var hint = scope[h]
           var hintname = null
