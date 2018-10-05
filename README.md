@@ -27,3 +27,4 @@ It will download and also manage updates.
 - [ ] Find constants from known scope
 - [ ] AutoComplete Namespaces and Uses
 - [ ] Organize Uses
+- [ ] Go to definition by Ctrl + Click over

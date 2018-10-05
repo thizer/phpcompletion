@@ -210,13 +210,16 @@ define(function (require, exports, module) {
         def.append('<i class="fa fa-globe-americas thizer-type thizer-type-success" title="'+visibility+'"></i> ')
         break;
       case 'protected':
-        def.append('<i class="fa fa-map-marker-alt thizer-type thizer-type-warning" title="'+visibility+'"></i> ')
+        def.append('<i class="fa fa-lock-open thizer-type thizer-type-warning" title="'+visibility+'"></i> ')
         break;
       case 'private':
         def.append('<i class="fa fa-lock thizer-type thizer-type-danger" title="'+visibility+'"></i> ')
         break;
       case 'Unknown type':
         def.append('<i class="fa fa-question thizer-type thizer-type-unknown" title="'+visibility+'"></i> ')
+        break;
+      case 'Variable':
+        def.append('<span class="thizer-type thizer-type-var" title="'+visibility+'">$</span> ')
         break;
       default:
         def.append('<span class="thizer-type thizer-type-other" title="'+visibility+'">'+visibility.substr(0,1)+'</span> ')
@@ -429,14 +432,14 @@ define(function (require, exports, module) {
   PhpCompletion.prototype.getPredefinedVariables = function() {
     return [
       {name: 'this'},
-      {name: '_SERVER'},
       {name: '_GET'},
       {name: '_POST'},
       {name: '_FILES'},
-      {name: '_REQUEST'},
       {name: '_SESSION'},
-      {name: '_ENV'},
       {name: '_COOKIE'},
+      {name: '_SERVER'},
+      {name: '_REQUEST'},
+      {name: '_ENV'},
       {name: 'phperrormsg'},
       {name: 'HTTP_RAW_POST_DATA'},
       {name: 'http_response_header'},
@@ -551,7 +554,7 @@ define(function (require, exports, module) {
           
           // Add if not exists yet
           if (!this.hintExists(hintname)) {
-            this.hints.push(this.getHtmlHint(hintname, false, false, '$ Variable', false))
+            this.hints.push(this.getHtmlHint(hintname, false, false, 'Variable', false))
           }
         }
       }
@@ -587,7 +590,7 @@ define(function (require, exports, module) {
     return {
       hints: this.hints,
       match: null,
-      selectInitial: false,
+      selectInitial: true,
       handleWideResults: true
     }
   }

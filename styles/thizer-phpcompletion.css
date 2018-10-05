@@ -11,7 +11,7 @@
   background-color: #2d7d27;
 }
 .thizer-type-warning {
-  background-color: #af8205;
+  background-color: #f89406;
 }
 .thizer-type-danger {
   background-color: #da3a3a;
@@ -20,9 +20,13 @@
   font-weight: bold;
   background-color: #666;
 }
-.thizer-type-other {
+.thizer-type-var {
   font-weight: bold;
   background-color: #08c;
+}
+.thizer-type-other {
+  font-weight: bold;
+  background-color: #cc00a9;
 }
 
 .thizer-hint {
