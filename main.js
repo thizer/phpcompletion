@@ -365,7 +365,7 @@ define(function (require, exports, module) {
         if (null === item) {
           continue
         } else if (item.hasOwnProperty('loc')) {
-          
+
           // Already below the current line?
           if (item.loc.start.line > $this.cursor.line) {
             break
@@ -420,6 +420,29 @@ define(function (require, exports, module) {
       this.insertIndex = textBeforeCursor.indexOf(fromText);
     }
     return this.insertIndex
+  }
+
+  /**
+   * Return a list of php predefined vars from php manual
+   * http://php.net/manual/en/reserved.variables.php
+   */
+  PhpCompletion.prototype.getPredefinedVariables = function() {
+    return [
+      {name: 'this'},
+      {name: '_SERVER'},
+      {name: '_GET'},
+      {name: '_POST'},
+      {name: '_FILES'},
+      {name: '_REQUEST'},
+      {name: '_SESSION'},
+      {name: '_ENV'},
+      {name: '_COOKIE'},
+      {name: 'phperrormsg'},
+      {name: 'HTTP_RAW_POST_DATA'},
+      {name: 'http_response_header'},
+      {name: 'argc'},
+      {name: 'argv'}
+    ]
   }
 
   PhpCompletion.prototype.hintExists = function(hintname) {
@@ -508,8 +531,10 @@ define(function (require, exports, module) {
       } else {
 
         var docParsed = this.getDocParsed(editor.document)
-        var scope = this.findBlocks(docParsed.children)
+        var scope = [].concat(this.findBlocks(docParsed.children), this.getPredefinedVariables())
         this.whatIsIt = ''
+
+        console.log(scope)
 
         for (var h in scope) {
           var hint = scope[h]
@@ -522,7 +547,7 @@ define(function (require, exports, module) {
           }
           
           // The hint contains the search?
-          if (!hintname || hintname.indexOf(this.search) === -1) {
+          if (!hintname || hintname.toLowerCase().indexOf(this.search.toLowerCase()) === -1) {
             continue
           }
           
