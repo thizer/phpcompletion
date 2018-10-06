@@ -86,24 +86,33 @@ define(function (require, exports, module) {
           if (docParsed && docParsed.children) {
             for (var i in docParsed.children) {
               if (docParsed.children[i].kind === 'namespace') {
-                namespace = docParsed.children[i].name
+                namespace = docParsed.children[i]
 
 
                 for (var it in docParsed.children[i].children) {
                   if (docParsed.children[i].children[it].kind === 'class') {
-                    theClass = docParsed.children[i].children[it].name
+                    theClass = docParsed.children[i].children[it]
 
                   } else if (docParsed.children[i].children[it].kind === 'usegroup') {
-                    usegroup.push(docParsed.children[i].children[it].items)
+
+                    var useItems = docParsed.children[i].children[it].items
+                    for (var g in useItems) {
+                      usegroup.push(useItems[g].name)
+                    }
+
                   }
                 }
 
               } else if (docParsed.children[i].kind === 'class') {
-                theClass = docParsed.children[i].name
+                theClass = docParsed.children[i]
 
               } else if (docParsed.children[i].kind === 'usegroup') {
-                usegroup.push(docParsed.children[i].items)
+                var useItems = docParsed.children[i].items
+                for (var g in useItems) {
+                  usegroup.push(useItems[g].name)
+                }
               }
+
             }
           }
 
@@ -438,6 +447,41 @@ define(function (require, exports, module) {
     return result
   }
 
+  PhpCompletion.prototype.findArgumentsByClassWithParents = function(parsedFile) {
+    var $this = this
+    var theClass = parsedFile.theClass
+    var className = theClass.name
+    var args = []
+
+    for (var i in theClass.body) {
+      if (theClass.body[i].kind === 'method' && (theClass.body[i].name === '__construct' || theClass.body[i].name === className)) {
+        args = theClass.body[i].arguments
+        break
+      }
+    }
+
+    // @Todo: Search for parameters from parent classes
+    // 
+    // Let's search for constructor in the parent
+    // if (!args.length && theClass.extends) {
+    //   var classExtName = theClass.extends.name
+      
+    //   for (var i in parsedFile.usegroup) {
+    //     var useItem = parsedFile.usegroup[i]
+
+    //     for (var f in $this.AllPhpParsedFiles) {
+    //       var file = $this.AllPhpParsedFiles[f]
+
+    //       if (file.theClass.name === classExtName) {
+
+    //       }
+    //     }
+    //   }
+    // }
+
+    return args
+  }
+
   /**
    * Return true if the cursor is after start loc and before end loc
    */
@@ -661,20 +705,51 @@ define(function (require, exports, module) {
           // } // End for
         // }
 
-        for (var i=0; i<30; i++) {
-          console.log(this.AllPhpParsedFiles[i])
+        for (var f in this.AllPhpParsedFiles) { 
+          var parsedFile = this.AllPhpParsedFiles[f]
+
+          // file: file,
+          // contents: data,
+          // docParsed: docParsed,
+          // namespace: namespace,
+          // theClass: theClass,
+          // usegroup: usegroup
+
+          // The name
+          if (!parsedFile.theClass) {
+            continue
+          }
+          var hintname = ''
+          hintname += (parsedFile.namespace ? '\\'+parsedFile.namespace.name+'\\' : '')
+          hintname += parsedFile.theClass.name
+
+          // Already added?
+          if (!this.hintExists(hintname) && hintname && hintname.indexOf(this.search) !== -1) {
+
+            // Args
+            var args = this.findArgumentsByClassWithParents(parsedFile)
+          
+            // Comments
+            var comment = null
+            if (parsedFile.theClass.leadingComments && parsedFile.theClass.leadingComments.length) {
+              var comment = parsedFile.theClass.leadingComments
+            }
+
+            // Inherited
+            var inherited = (parsedFile.theClass.extends) ? parsedFile.theClass.extends.name : false
+            if (!inherited && !parsedFile.namespace) {
+              inherited = parsedFile.file.name
+            }
+
+            this.hints.push(this.getHtmlHint(
+              hintname,
+              args, // args
+              comment,
+              'Class', // Visibility is more like hintType @todo
+              inherited
+            ))
+          }
         }
-
-        // for (var f in this.AllPhpParsedFiles) {
-
-          // console.log(this.AllClassHints[lh])
-
-          // var hintname = this.AllClassHints[lh].name
-
-          // if (!this.hintExists() && hintname && hintname.indexOf(this.search) !== -1) {
-          //   this.hints.push(this.getHtmlHint(hintname+'()', false, false, 'Class', false))
-          // }
-        // }
         this.whatIsIt = 'new '
 
       } else {
