@@ -50,7 +50,7 @@ define(function (require, exports, module) {
     this.hints = []
     this.isThisRegexp = /^\$(this|thi|th|t)?(-\>)?/
 
-    this.AllClassHints = []
+    this.AllPhpParsedFiles = []
 
     this.insertIndex
     this.editor
@@ -74,7 +74,48 @@ define(function (require, exports, module) {
       var ext = file.name.replace(/.+\./, '')
       if (ext === 'php') {
         file.read(function(err, data) {
-          if (err) throw new err
+          if (err) {
+            throw new err
+          }
+
+          var docParsed = $this.getDocParsed(data)
+          var namespace = ''
+          var usegroup = []
+          var theClass = ''
+
+          if (docParsed && docParsed.children) {
+            for (var i in docParsed.children) {
+              if (docParsed.children[i].kind === 'namespace') {
+                namespace = docParsed.children[i].name
+
+
+                for (var it in docParsed.children[i].children) {
+                  if (docParsed.children[i].children[it].kind === 'class') {
+                    theClass = docParsed.children[i].children[it].name
+
+                  } else if (docParsed.children[i].children[it].kind === 'usegroup') {
+                    usegroup.push(docParsed.children[i].children[it].items)
+                  }
+                }
+
+              } else if (docParsed.children[i].kind === 'class') {
+                theClass = docParsed.children[i].name
+
+              } else if (docParsed.children[i].kind === 'usegroup') {
+                usegroup.push(docParsed.children[i].items)
+              }
+            }
+          }
+
+          $this.AllPhpParsedFiles.push({
+            file: file,
+            contents: data,
+            docParsed: docParsed,
+            namespace: namespace,
+            theClass: theClass,
+            usegroup: usegroup
+          })
+
         })
 
         $this.phpFiles.push(file)
@@ -571,42 +612,69 @@ define(function (require, exports, module) {
         this.setInsertIndex('new')
 
         // It will be faster than 'this.findBlocks'
-        if (!this.AllClassHints.length) {
-          for (var f in this.phpFiles) {
-            var file = this.phpFiles[f]
-            var docParsed = this.getDocParsed(file._contents)
+        // if (!this.AllClassHints.length) {
 
-            if (docParsed && docParsed.hasOwnProperty('children')) {
-              for (var g in docParsed.children) {
-                var theG = docParsed.children[g]
-                if (theG.kind === 'class') {
+          // 1
+          // for (var f in this.phpFiles) {
+          //   var file = this.phpFiles[f]
+          //   var docParsed = this.getDocParsed(file._contents)
 
-                  this.AllClassHints.push(theG.name)
-                  break
+          //   if (docParsed && docParsed.hasOwnProperty('children')) {
 
-                } else if (theG.kind === 'namespace') {
+          //     var classBlocks = this.findBlocks(docParsed.children, 'class')
+          //     for (var cb in classBlocks) {
+          //       if (classBlocks[cb].kind === 'class') {
+          //         this.AllClassHints.push(classBlocks[cb])
+          //       }
+          //     }
+          //   }
+          // }
+
+          // 2
+          // for (var f in this.phpFiles) {
+          //   var file = this.phpFiles[f]
+          //   var docParsed = this.getDocParsed(file._contents)
+
+          //   if (docParsed && docParsed.hasOwnProperty('children')) {
+          //     for (var g in docParsed.children) {
+          //       var theG = docParsed.children[g]
+          //       if (theG.kind === 'class') {
+
+          //         this.AllClassHints.push(theG.name)
+          //         break
+
+          //       } else if (theG.kind === 'namespace') {
                   
-                  for (var h in theG.children) {
-                    var theH = theG.children[h]
-                    if (theH.kind === 'class') {
+          //         for (var h in theG.children) {
+          //           var theH = theG.children[h]
+          //           if (theH.kind === 'class') {
                       
-                      this.AllClassHints.push('\\'+theG.name+'\\'+theH.name)
-                      break
+          //             this.AllClassHints.push('\\'+theG.name+'\\'+theH.name)
+          //             break
                       
-                    }
-                  } // End for
-                }
-              } // End for
-            } // End if
+          //           }
+          //         } // End for
+          //       }
+          //     } // End for
+          //   } // End if
 
-          } // End for
+          // } // End for
+        // }
+
+        for (var i=0; i<30; i++) {
+          console.log(this.AllPhpParsedFiles[i])
         }
 
-        for (var lh in this.AllClassHints) {
-          if (!this.hintExists(this.AllClassHints[lh]) && this.AllClassHints[lh].indexOf(this.search) !== -1) {
-            this.hints.push(this.getHtmlHint(this.AllClassHints[lh]+'()', false, false, 'Class', false))
-          }
-        }
+        // for (var f in this.AllPhpParsedFiles) {
+
+          // console.log(this.AllClassHints[lh])
+
+          // var hintname = this.AllClassHints[lh].name
+
+          // if (!this.hintExists() && hintname && hintname.indexOf(this.search) !== -1) {
+          //   this.hints.push(this.getHtmlHint(hintname+'()', false, false, 'Class', false))
+          // }
+        // }
         this.whatIsIt = 'new '
 
       } else {
