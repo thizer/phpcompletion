@@ -450,6 +450,13 @@ define(function (require, exports, module) {
     return result
   }
 
+  /**
+   * Php allow constructors to have parameters, when there's an extends class
+   * and this one theres no parameters, so that extended can provide instead
+   * 
+   * @param  {[object]} parsedFile result of this.getDocParsed() method
+   * @return {[array]} a list with arguments found
+   */
   PhpCompletion.prototype.findArgumentsByClassWithParents = function(parsedFile) {
     var $this = this
     var theClass = parsedFile.theClass
@@ -463,26 +470,27 @@ define(function (require, exports, module) {
       }
     }
 
-    // @Todo: Search for parameters from parent classes
-    // 
     // Let's search for constructor in the parent
     if (!args.length && theClass.extends) {
       var classExtName = theClass.extends.name
       
+      // Fix class with use name
       for (var i in parsedFile.usegroup) {
         if (parsedFile.usegroup[i].indexOf(classExtName) !== -1) {
-          classExtName = '\\'+parsedFile.usegroup[i]
+          classExtName = '\\'+(parsedFile.usegroup[i].replace('^\\', ''))
         }
       }
 
+      // Search for this class and try to get its constructor arguments
+      // Recursive
       for (var pf in $this.AllPhpParsedFiles) {
         if ($this.AllPhpParsedFiles[pf].fullClassName.indexOf(classExtName) !== -1) {
           args = $this.findArgumentsByClassWithParents($this.AllPhpParsedFiles[pf])
+          break
         }
       }
 
     }
-
     return args
   }
 
