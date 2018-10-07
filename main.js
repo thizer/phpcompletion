@@ -82,6 +82,7 @@ define(function (require, exports, module) {
           var namespace = ''
           var usegroup = []
           var theClass = ''
+          var fullClassName = ''
 
           if (docParsed && docParsed.children) {
             for (var i in docParsed.children) {
@@ -92,6 +93,7 @@ define(function (require, exports, module) {
                 for (var it in docParsed.children[i].children) {
                   if (docParsed.children[i].children[it].kind === 'class') {
                     theClass = docParsed.children[i].children[it]
+                    fullClassName = '\\'+namespace+'\\'+theClass
 
                   } else if (docParsed.children[i].children[it].kind === 'usegroup') {
 
@@ -122,6 +124,7 @@ define(function (require, exports, module) {
             docParsed: docParsed,
             namespace: namespace,
             theClass: theClass,
+            fullClassName: fullClassName,
             usegroup: usegroup
           })
 
@@ -463,21 +466,22 @@ define(function (require, exports, module) {
     // @Todo: Search for parameters from parent classes
     // 
     // Let's search for constructor in the parent
-    // if (!args.length && theClass.extends) {
-    //   var classExtName = theClass.extends.name
+    if (!args.length && theClass.extends) {
+      var classExtName = theClass.extends.name
       
-    //   for (var i in parsedFile.usegroup) {
-    //     var useItem = parsedFile.usegroup[i]
+      for (var i in parsedFile.usegroup) {
+        if (parsedFile.usegroup[i].indexOf(classExtName) !== -1) {
+          classExtName = '\\'+parsedFile.usegroup[i]
+        }
+      }
 
-    //     for (var f in $this.AllPhpParsedFiles) {
-    //       var file = $this.AllPhpParsedFiles[f]
+      for (var pf in $this.AllPhpParsedFiles) {
+        if ($this.AllPhpParsedFiles[pf].fullClassName.indexOf(classExtName) !== -1) {
+          args = $this.findArgumentsByClassWithParents($this.AllPhpParsedFiles[pf])
+        }
+      }
 
-    //       if (file.theClass.name === classExtName) {
-
-    //       }
-    //     }
-    //   }
-    // }
+    }
 
     return args
   }
@@ -654,56 +658,6 @@ define(function (require, exports, module) {
       if (textBefore === 'new') {
 
         this.setInsertIndex('new')
-
-        // It will be faster than 'this.findBlocks'
-        // if (!this.AllClassHints.length) {
-
-          // 1
-          // for (var f in this.phpFiles) {
-          //   var file = this.phpFiles[f]
-          //   var docParsed = this.getDocParsed(file._contents)
-
-          //   if (docParsed && docParsed.hasOwnProperty('children')) {
-
-          //     var classBlocks = this.findBlocks(docParsed.children, 'class')
-          //     for (var cb in classBlocks) {
-          //       if (classBlocks[cb].kind === 'class') {
-          //         this.AllClassHints.push(classBlocks[cb])
-          //       }
-          //     }
-          //   }
-          // }
-
-          // 2
-          // for (var f in this.phpFiles) {
-          //   var file = this.phpFiles[f]
-          //   var docParsed = this.getDocParsed(file._contents)
-
-          //   if (docParsed && docParsed.hasOwnProperty('children')) {
-          //     for (var g in docParsed.children) {
-          //       var theG = docParsed.children[g]
-          //       if (theG.kind === 'class') {
-
-          //         this.AllClassHints.push(theG.name)
-          //         break
-
-          //       } else if (theG.kind === 'namespace') {
-                  
-          //         for (var h in theG.children) {
-          //           var theH = theG.children[h]
-          //           if (theH.kind === 'class') {
-                      
-          //             this.AllClassHints.push('\\'+theG.name+'\\'+theH.name)
-          //             break
-                      
-          //           }
-          //         } // End for
-          //       }
-          //     } // End for
-          //   } // End if
-
-          // } // End for
-        // }
 
         for (var f in this.AllPhpParsedFiles) { 
           var parsedFile = this.AllPhpParsedFiles[f]
