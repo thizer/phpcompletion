@@ -151,7 +151,10 @@ define(function (require, exports, module) {
 
         // Is not saved yet
         if (doc.isDirty) {
+
+          doc.file.read(function() { })
           content = doc.file._contents
+          
         } else {
           content = doc.getText()
         }
@@ -466,7 +469,7 @@ define(function (require, exports, module) {
     for (var i in theClass.body) {
       if (theClass.body[i].kind === 'method' && (theClass.body[i].name === '__construct' || theClass.body[i].name === className)) {
         args = theClass.body[i].arguments
-        break
+        // break
       }
     }
 
@@ -486,7 +489,7 @@ define(function (require, exports, module) {
       for (var pf in $this.AllPhpParsedFiles) {
         if ($this.AllPhpParsedFiles[pf].fullClassName.indexOf(classExtName) !== -1) {
           args = $this.findArgumentsByClassWithParents($this.AllPhpParsedFiles[pf])
-          break
+          // break
         }
       }
 
@@ -634,6 +637,12 @@ define(function (require, exports, module) {
       } else {
 
         var docParsed = this.getDocParsed(editor.document)
+
+        // Bug fix
+        if (!docParsed) {
+          return false
+        }
+
         var scope = [].concat(this.findBlocks(docParsed.children), this.getPredefinedVariables())
         this.whatIsIt = ''
 
