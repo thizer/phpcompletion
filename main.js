@@ -58,6 +58,8 @@ define(function (require, exports, module) {
     this.cursor
     this.whatIsIt
     this.search
+    
+    console.log(fs)
 
     this.loadFiles()
   }
@@ -168,39 +170,6 @@ define(function (require, exports, module) {
     return docParsed
   }
   
-  /**
-   * Extract from a class document all content and turns it to hints
-   * 
-   * @param  {[type]} doc        [description]
-   * @return {[type]}            [description]
-   */
-  PhpCompletion.prototype.extractClassObjs = function(doc) {
-    var $this = this
-    var hints = []
-
-    var docParsed = $this.getDocParsed(doc)
-    var bodyArray = $this.getBodyArray(docParsed)
-    
-    for (var i in bodyArray) {
-      
-      var prop = bodyArray[i].propObj
-      
-      // If the hint doesnt match the search
-      if ((this.search !== '') && (prop.name.toLowerCase().indexOf(this.search) === -1)) {
-        continue;
-      }
-
-      hints.push(this.getHtmlHint(
-        prop.name,
-        ((prop.kind === 'method') ? prop.arguments : false),
-        prop.leadingComments,
-        prop.visibility,
-        ((bodyArray[i].inherited) ? bodyArray[i].className : false)
-      ))
-    }
-    return hints
-  }
-
   PhpCompletion.prototype.getHtmlHint = function(hintname, args, comment, visibility, inherited) {
     var $this = this
 
@@ -308,99 +277,6 @@ define(function (require, exports, module) {
 
     return hint
   }
-  
-  /**
-   * An array with all document (file) class contents
-   * 
-   * @param  {[type]} docParsed [description]
-   * @param  {[type]} visibity  [description]
-   * @return {[type]}           [description]
-   */
-  PhpCompletion.prototype.getBodyArray = function(docParsed, visibity, inherited) {
-    var $this = this
-    var bodyArray = []
-    
-    if (undefined === visibity) {
-      visibity = 'public|protected|private'
-    }
-
-    if (undefined === inherited) {
-      inherited = false
-    }
-    
-    if ((undefined !== docParsed) && (!docParsed.errors.length)) {
-      for (var i in docParsed.children) {
-        var item = docParsed.children[i]
-        
-        switch (item.kind) {
-          case 'class':
-            
-            // Check for visibility
-            bodyArray = bodyArray.concat($this.getBodyArrayFromClass(item, visibity, inherited))
-            break
-            
-          case 'namespace':
-            for (var c in item.children) {
-              if (item.children[c].kind === 'class') {
-                bodyArray = bodyArray.concat($this.getBodyArrayFromClass(item.children[c], visibity, inherited))
-              }
-            }
-            break
-        }
-      } // End of multiple elements on the file
-    } // End if errors
-    
-    // Return a list of accessible properties from the file
-    return bodyArray
-  }
-
-  /**
-   * From a class we get the body content
-   * 
-   * @param  {[type]} theClass [description]
-   * @param  {[type]} visibity [description]
-   * @return {[type]}          [description]
-   */
-  PhpCompletion.prototype.getBodyArrayFromClass = function(theClass, visibity, inherited) {
-    var $this = this
-    var result = []
-    for (var b in theClass.body) {
-      var prop = theClass.body[b]
-      if (visibity.indexOf(prop.visibility) !== -1) {
-
-        result.push({
-          "propObj": prop,
-          "inherited": (inherited ? true : false),
-          "className": theClass.name,
-          "loc": theClass.loc
-        })
-      }
-    }
-
-    // Class parent
-    if (theClass.extends) {
-      var parentName = theClass.extends.name
-      
-      for (var f in $this.phpFiles) {
-        if ($this.phpFiles[f].name.indexOf(parentName) !== -1) {
-          result = result.concat($this.getBodyArray($this.getDocParsed($this.phpFiles[f]._contents), 'public|protected', true))
-        }
-      } // Endfor
-
-    } // End extends
-
-    // For while we are not able to find Interface methods =/
-    // 
-    // if (theClass.implements) {
-    //   for (var I in theClass.implements) {
-    //     var Interface = theClass.implements[I]
-
-    //     console.log(Interface.arguments())        
-    //   }
-    // }
-
-    return result
-  }
 
   /**
    * This method return the list of objects by the kind
@@ -451,50 +327,6 @@ define(function (require, exports, module) {
       }
     }
     return result
-  }
-
-  /**
-   * Php allow constructors to have parameters, when there's an extends class
-   * and this one theres no parameters, so that extended can provide instead
-   * 
-   * @param  {[object]} parsedFile result of this.getDocParsed() method
-   * @return {[array]} a list with arguments found
-   */
-  PhpCompletion.prototype.findArgumentsByClassWithParents = function(parsedFile) {
-    var $this = this
-    var theClass = parsedFile.theClass
-    var className = theClass.name
-    var args = []
-
-    for (var i in theClass.body) {
-      if (theClass.body[i].kind === 'method' && (theClass.body[i].name === '__construct' || theClass.body[i].name === className)) {
-        args = theClass.body[i].arguments
-        // break
-      }
-    }
-
-    // Let's search for constructor in the parent
-    if (!args.length && theClass.extends) {
-      var classExtName = theClass.extends.name
-      
-      // Fix class with use name
-      for (var i in parsedFile.usegroup) {
-        if (parsedFile.usegroup[i].indexOf(classExtName) !== -1) {
-          classExtName = '\\'+(parsedFile.usegroup[i].replace('^\\', ''))
-        }
-      }
-
-      // Search for this class and try to get its constructor arguments
-      // Recursive
-      for (var pf in $this.AllPhpParsedFiles) {
-        if ($this.AllPhpParsedFiles[pf].fullClassName.indexOf(classExtName) !== -1) {
-          args = $this.findArgumentsByClassWithParents($this.AllPhpParsedFiles[pf])
-          // break
-        }
-      }
-
-    }
-    return args
   }
 
   /**
@@ -620,15 +452,7 @@ define(function (require, exports, module) {
 
       this.whatIsIt = '$this->'
 
-      // Redefine the search term and look for it into classes
-      this.search = this.search.replace(this.isThisRegexp, '')
-      var classHints = this.extractClassObjs(editor.document)
-      
-      for (var i in classHints) {
-        if (!this.hintExists(classHints[i])) {
-          this.hints.push(classHints[i])
-        }
-      }
+      console.log('A $this object')
 
     } else if (this.whatIsIt[0] === '$') {
 
@@ -636,36 +460,7 @@ define(function (require, exports, module) {
         console.log('A class instance object')
       } else {
 
-        var docParsed = this.getDocParsed(editor.document)
-
-        // Bug fix
-        if (!docParsed) {
-          return false
-        }
-
-        var scope = [].concat(this.findBlocks(docParsed.children), this.getPredefinedVariables())
-        this.whatIsIt = ''
-
-        for (var h in scope) {
-          var hint = scope[h]
-          var hintname = null
-
-          if (undefined !== hint.name) {
-            hintname = '$'+hint.name
-          } else if (undefined !== hint.left.name) {
-            hintname = '$'+hint.left.name
-          }
-          
-          // The hint contains the search?
-          if (!hintname || hintname.toLowerCase().indexOf(this.search.toLowerCase()) === -1) {
-            continue
-          }
-          
-          // Add if not exists yet
-          if (!this.hintExists(hintname)) {
-            this.hints.push(this.getHtmlHint(hintname, false, false, 'Variable', false))
-          }
-        }
+        console.log('A variable')
       }
     } else {
 
@@ -676,59 +471,14 @@ define(function (require, exports, module) {
 
         this.setInsertIndex('new')
 
-        for (var f in this.AllPhpParsedFiles) { 
-          var parsedFile = this.AllPhpParsedFiles[f]
-
-          // file: file,
-          // contents: data,
-          // docParsed: docParsed,
-          // namespace: namespace,
-          // theClass: theClass,
-          // usegroup: usegroup
-
-          // The name
-          if (!parsedFile.theClass) {
-            continue
-          }
-          var hintname = ''
-          hintname += (parsedFile.namespace ? '\\'+parsedFile.namespace.name+'\\' : '')
-          hintname += parsedFile.theClass.name
-
-          // Already added?
-          if (!this.hintExists(hintname) && hintname && hintname.indexOf(this.search) !== -1) {
-
-            // Args
-            var args = this.findArgumentsByClassWithParents(parsedFile)
-          
-            // Comments
-            var comment = null
-            if (parsedFile.theClass.leadingComments && parsedFile.theClass.leadingComments.length) {
-              var comment = parsedFile.theClass.leadingComments
-            }
-
-            // Inherited
-            var inherited = (parsedFile.theClass.extends) ? parsedFile.theClass.extends.name : false
-            if (!inherited && !parsedFile.namespace) {
-              inherited = parsedFile.file.name
-            }
-
-            this.hints.push(this.getHtmlHint(
-              hintname,
-              args, // args
-              comment,
-              'Class', // Visibility is more like hintType @todo
-              inherited
-            ))
-          }
-        }
+        console.log('New instance object')
+        
         this.whatIsIt = 'new '
 
       } else {
         console.log('anything')
       }
     }
-
-    // var token = TokenUtils.getInitialContext(editor._codeMirror, editor.getCursorPos());
     
     return (this.hints.length !== 0)
   }
